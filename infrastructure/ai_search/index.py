@@ -1,0 +1,149 @@
+"""Azure AI Search index setup.
+
+Creates or updates the search index with fields for text, image embeddings,
+and document-level security groups. Configures vector search with HNSW
+algorithm and semantic reranking.
+"""
+
+import os
+import time
+
+from azure.search.documents.indexes.models import (
+    AzureOpenAIVectorizer,
+    AzureOpenAIVectorizerParameters,
+    ComplexField,
+    HnswAlgorithmConfiguration,
+    SearchField,
+    SearchFieldDataType,
+    SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    VectorSearch,
+    VectorSearchProfile,
+)
+
+from raglib.config import get_search_index_client, get_project_names, load_env_vars
+from raglib.log import log_message
+
+load_env_vars()
+
+index_name, semantic_config_name = get_project_names()
+index_client = get_search_index_client()
+
+log_enabled = True
+print_log_enabled = True
+log_tag = "setup_index"
+start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+fields = [
+    SearchField(
+        name="content_id",
+        type=SearchFieldDataType.String,
+        key=True,
+        analyzer_name="keyword",
+        sortable=True,
+        filterable=True,
+        facetable=True
+    ),
+    SearchField(
+        name="document_title",
+        type=SearchFieldDataType.String,
+        searchable=True
+    ),
+    SearchField(
+        name="document_date",
+        type=SearchFieldDataType.String,
+        filterable=True,
+        sortable=True
+    ),
+    SearchField(
+        name="text_document_id",
+        type=SearchFieldDataType.String,
+        filterable=True,
+    ),
+    SearchField(
+        name="image_document_id",
+        type=SearchFieldDataType.String,
+        filterable=True,
+    ),
+    SearchField(
+        name="content_text",
+        type=SearchFieldDataType.String,
+        searchable=True,
+    ),
+    SearchField(
+        name="content_embedding",
+        type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+        vector_search_dimensions=int(os.getenv("AZURE_FOUNDRY_EMBEDDING_DIMENSIONS", "3072")),
+        vector_search_profile_name="HnswProfile",
+        searchable=True,
+    ),
+    SearchField(
+        name="content_path",
+        type=SearchFieldDataType.String,
+        searchable=False,
+    ),
+    SearchField(
+        name="security_groups",
+        type=SearchFieldDataType.Collection(SearchFieldDataType.String),
+        filterable=True,
+        searchable=False,
+    )
+]
+
+vector_search = VectorSearch(
+    profiles=[
+        VectorSearchProfile(
+            name="HnswProfile",
+            algorithm_configuration_name="Hnsw",
+            vectorizer_name="OpenAI"
+        )
+    ],
+    algorithms=[
+        HnswAlgorithmConfiguration(name="Hnsw")
+    ],
+    vectorizers=[
+        AzureOpenAIVectorizer(
+            vectorizer_name="OpenAI",
+            kind="azureOpenAI",
+            parameters=AzureOpenAIVectorizerParameters(
+                resource_url=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
+                model_name=os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL"),
+                deployment_name=os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL"),
+            )
+        )
+    ]
+)
+
+semantic_config = SemanticConfiguration(
+    name=semantic_config_name,
+    prioritized_fields=SemanticPrioritizedFields(
+        title_field=SemanticField(field_name="document_title"),
+        content_fields=[SemanticField(field_name="content_text")],
+        keywords_fields=[SemanticField(field_name="content_text")]
+    )
+)
+semantic_search_settings = SemanticSearch(configurations=[semantic_config])
+
+index = SearchIndex(
+    name=index_name,
+    fields=fields,
+    vector_search=vector_search,
+    semantic_search=semantic_search_settings,
+)
+index_client.create_or_update_index(index)
+
+properties = {
+    'tag': log_tag,
+    'start_timestamp': start_timestamp,
+    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+}
+log_message(
+    should_log=log_enabled,
+    print_message=print_log_enabled,
+    message=f"{index_name} created or updated",
+    level=20,
+    additional_properties=properties
+)

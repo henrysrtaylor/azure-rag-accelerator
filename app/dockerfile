@@ -1,0 +1,44 @@
+FROM python:3.11-alpine
+
+# Add build dependencies for compiled packages (Alpine uses apk, not apt-get)
+RUN apk add --no-cache \
+    build-base \
+    python3-dev \
+    pkgconfig \
+    jpeg-dev \
+    zlib-dev \
+    freetype-dev \
+    openjpeg-dev \
+    musl-dev \
+    libffi-dev
+
+WORKDIR /app
+
+# Copy package files first (for better layer caching)
+COPY pyproject.toml /app/
+COPY raglib/ /app/raglib/
+
+# Copy requirements
+COPY requirements.txt /app/requirements.txt
+
+# Copy app folder
+COPY app/ /app/app/
+
+# Copy .env file
+COPY .env /app/.env
+
+# Option flags as env variables (can be overridden at runtime)
+ENV OPTION_QUERY_REFINEMENT=true
+ENV OPTION_GUARDRAIL_CHECKS=true
+ENV OPTION_SUGGESTED_QUESTIONS=true
+ENV OPTION_SECURITY_GROUPS=true
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+RUN grep -v "^-e" requirements.txt > /tmp/requirements.txt && \
+    pip install --no-cache-dir -r /tmp/requirements.txt && \
+    pip install --no-cache-dir .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.backend_server:app", "--host=0.0.0.0", "--port=8000"]
