@@ -20,6 +20,8 @@ DEFAULT_SECURITY_GROUPS = os.getenv("OPTION_SECURITY_GROUPS", "true").lower() in
 DEFAULT_SHOW_REFERENCES = True
 DEFAULT_SHOW_SUGGESTED_QS = True
 
+_TITLE = "RAG Assistant"
+_ICON = "💬"
 
 def authenticate_user() -> list[str]:
     """Authenticate user via MSAL and extract security groups."""
@@ -50,18 +52,16 @@ def authenticate_user() -> list[str]:
 
 # Page config - hide deploy button via CSS
 st.set_page_config(
-    page_title="RAG Assistant", 
-    page_icon="💬", 
+    page_title=_TITLE, 
+    page_icon=_ICON, 
     layout="centered"
 )
 
-# Hide deploy button with CSS + right-align user messages
-st.markdown("""
+# Base CSS - hide deploy button + right-align user messages
+base_css = """
     <style>
     .stDeployButton {display: none !important;}
     [data-testid="stAppDeployButton"] {display: none !important;}
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
         flex-direction: row-reverse;
     }
@@ -69,9 +69,10 @@ st.markdown("""
         text-align: right;
     }
     </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(base_css, unsafe_allow_html=True)
 
-st.title("💬 RAG Assistant")
+st.title(f"{_ICON} {_TITLE}")
 
 # Initialize session state
 if "messages" not in st.session_state:
