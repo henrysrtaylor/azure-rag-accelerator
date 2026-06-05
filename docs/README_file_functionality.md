@@ -52,10 +52,10 @@ Interactive command-line chat client (legacy). Authenticates users via MSAL (bro
 
 ---
 
-## Scripts (`scripts/`)
+## Evaluation (`evaluation/`)
 
 ### `evaluation_script.py`
-RAG quality evaluation using Azure AI Evaluation SDK. Runs evaluators for groundedness, similarity, relevance, fluency, and coherence against a test dataset (JSONL format) stored in Blob Storage. Includes `precision_recall_at_k()` for retrieval metrics.
+RAG quality evaluation using Azure AI Evaluation SDK. Runs evaluators for groundedness, similarity, relevance, fluency, and coherence against a test dataset (JSONL format) in `data/evaluation/`. Includes `precision_recall_at_k()` for retrieval metrics.
 
 ---
 
