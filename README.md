@@ -2,7 +2,7 @@
 
 A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI services. Implements document-level security, content moderation guardrails, query refinement, and citation management. Designed as an accelerator to speed up production RAG deployments.
 
-> NOTE: This is an accelerator/reference implementation, not a production-ready product. Customize for your specific use case.
+> NOTE: This is an accelerator/reference implementation, not a production-ready product. Its designed for local use, connecting with Azure services. It can easily be made production-ready though. Customize for your specific use case.
 
 ![RAG Assistant Chat Interface](docs/images/chat_screenshot.png)
 
@@ -15,13 +15,14 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Citations: Automatic reference tracking
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
-- Evaluation: Script to evaluate solution based on `data/evaluation/golden_dataset`
+- Evaluation: Script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
 - Entry: Streamlit, CLI, API from backend
 
 ## 📈 Future Roadmap
 - Infrastructure: Terraform modules for full deployment
-- Data: Load your documents into the local directory and send them to Data Lake
-- Evaluation: Cleaner script output, front-end for testing and metrics.
+- Data: Load documents into the local directory and send them to Data Lake
+- Evaluation: Recording local evaluation runs, custom evaluation judges, part of core lib
+- Model Flexibility: Migrate to `azure-ai-inference` SDK for model-agnostic LLM calls (any Foundry model) instead of `openai` and `azure-ai-evaluation`
 
 ## 📂 Project Structure
 
@@ -43,7 +44,7 @@ azure-rag-accelerator/
 │   └── cli_app.py             # CLI chat client (legacy)
 ├── evaluation/                # RAG evaluation
 │   └── evaluation_script.py   # Quality metrics runner
-├── data/                      # Source documents for indexing
+├── data/                      # Source documents for indexing and evaluation
 ├── infrastructure/            # Deployment resources
 │   ├── ai_search/             # Index & indexer setup
 │   └── functions/             # Azure Function for DLS

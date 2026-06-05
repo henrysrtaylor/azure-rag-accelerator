@@ -5,11 +5,12 @@ groundedness, similarity, relevance, fluency, coherence, F1, and retrieval preci
 """
 import json
 import os
-import re
 import tempfile
 import time
+from pathlib import Path
 
 import numpy as np
+from tqdm import tqdm
 from azure.ai.evaluation import (
     CoherenceEvaluator,
     F1ScoreEvaluator,
@@ -20,26 +21,26 @@ from azure.ai.evaluation import (
     evaluate,
 )
 
-from raglib.config import get_blob_container_client, load_env_vars
+from eval_config import SDK_LLM_THRESHOLD, METRIC_THRESHOLDS
+from raglib.config import load_env_vars
 from raglib.log import log_message
 from raglib.permissions import build_security_filter
 from raglib.pipeline import evaluation_chat_logic
 
 load_env_vars()
 
+OUTPUT_DIR = Path(__file__).parent / "output"
+
 log_enabled = True
 print_log_enabled = True
 log_tag = "evaluation_metrics"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-container_client = get_blob_container_client(os.getenv("BLOB_CONTAINER_NAME_EVAL"))
-blob_client = container_client.get_blob_client(os.getenv("BLOB_DOCUMENT_NAME_EVAL"))
-streamdownloader = blob_client.download_blob()
-re_pattern = r'\{[^{}]*\}'
-download_ = streamdownloader.readall().decode('utf-8').replace("\r", " ").replace("\n", " ")
-qna_set = [json.loads(line) for line in re.findall(re_pattern, download_)]
+# Load from local JSON file
+LOCAL_DATASET_PATH = Path(__file__).parent.parent / "data" / "evaluation" / "example_golden_dataset.json"
+with open(LOCAL_DATASET_PATH, 'r', encoding='utf-8') as f:
+    qna_set = json.load(f)
 
-threshold = 3
 model_config = {
     "type": "azure_openai",
     "azure_endpoint": os.getenv("AZURE_FOUNDRY_ENDPOINT"),
@@ -48,11 +49,11 @@ model_config = {
 }
 evaluators = {
     "groundedness": {
-        "evaluator": GroundednessEvaluator(model_config, threshold=threshold),
+        "evaluator": GroundednessEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"response": "${data.response}", "context": "${data.context}"}
     },
     "similarity": {
-        "evaluator": SimilarityEvaluator(model_config, threshold=threshold),
+        "evaluator": SimilarityEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"response": "${data.response}", "ground_truth": "${data.ground_truth}"}
     },
     "f1_score": {
@@ -60,15 +61,15 @@ evaluators = {
         "column_mapping": {"response": "${data.response}", "ground_truth": "${data.ground_truth}"}
     },
     "relevance": {
-        "evaluator": RelevanceEvaluator(model_config, threshold=threshold),
+        "evaluator": RelevanceEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"query": "${data.query}", "response": "${data.response}"}
     },
     "fluency": {
-        "evaluator": FluencyEvaluator(model_config, threshold=threshold),
+        "evaluator": FluencyEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"response": "${data.response}"}
     },
     "coherence": {
-        "evaluator": CoherenceEvaluator(model_config, threshold=threshold),
+        "evaluator": CoherenceEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"response": "${data.response}"}
     }
 }
@@ -104,7 +105,9 @@ retrieval_results: list[list[float]] = []
 eval_golden_dataset_enhanced: list[dict] = []
 security_filter = build_security_filter(None)
 
-for eval_example in qna_set:
+print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
+
+for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     query = eval_example.get("query", "")
     ground_truth_documents = eval_example.get("ground_truth_documents", [])
 
@@ -188,7 +191,8 @@ tracked_metrics = sorted(aggregated_metrics + [
 ])
 
 eval_metrics = [
-    {key: d[key] / 5.0 if key in normalise_llm_judgement else d[key] for key in tracked_metrics}
+    {key: d.get(key, None) / 5.0 if key in normalise_llm_judgement and d.get(key) is not None 
+     else d.get(key, None) for key in tracked_metrics}
     for d in results_individual
 ]
 
@@ -197,15 +201,113 @@ aggregated_eval_metrics = {
     for k in aggregated_metrics
 }
 
-for idx, metrics in enumerate(eval_metrics):
-    print(f"\nExample {idx + 1} metrics:")
-    for metric, value in metrics.items():
-        print(f"{metric}: {value}")
 
+def print_summary_table(metrics: dict) -> int:
+    """Print a formatted summary table with pass/fail status. Returns count of passed metrics."""
+    print("\n" + "=" * 65)
+    print("                    EVALUATION SUMMARY")
+    print("=" * 65)
+    print(f"{'Metric':<30} {'Score':>8} {'Threshold':>10} {'Status':>10}")
+    print("-" * 65)
+
+    passed = 0
+    friendly_names = {
+        'groundedness.gpt_groundedness': 'Groundedness',
+        'similarity.gpt_similarity': 'Similarity',
+        'relevance.gpt_relevance': 'Relevance',
+        'fluency.gpt_fluency': 'Fluency',
+        'coherence.gpt_coherence': 'Coherence',
+        'f1_score.f1_score': 'F1 Score',
+        'retrieval_precision_at_1': 'Precision@1',
+        'retrieval_precision_at_5': 'Precision@5',
+        'retrieval_recall_at_1': 'Recall@1',
+        'retrieval_recall_at_5': 'Recall@5',
+    }
+
+    for metric_key in aggregated_metrics:
+        score = metrics.get(metric_key, 0)
+        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        status = "PASS" if score >= threshold else "FAIL"
+        if status == "PASS":
+            passed += 1
+        name = friendly_names.get(metric_key, metric_key)
+        print(f"{name:<30} {score:>8.2f} {threshold:>10.2f} {status:>10}")
+
+    print("-" * 65)
+    total = len(aggregated_metrics)
+    overall = "PASS" if passed == total else "FAIL"
+    print(f"{'Overall:':<30} {'':<8} {'':<10} {f'{passed}/{total} {overall}':>10}")
+    print("=" * 65)
+    return passed
+
+
+def save_results_json(metrics_list: list[dict], aggregated: dict, dataset: list[dict], timestamp: str) -> Path:
+    """Save detailed results and summary to timestamped directory as JSON."""
+    dir_name = timestamp.replace(':', '-').replace(' ', '_')
+    run_dir = OUTPUT_DIR / dir_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Full results with query/response/ground_truth + all metrics
+    full_results = []
+    for i, metrics in enumerate(metrics_list):
+        result = {
+            'query': dataset[i].get('query', ''),
+            'response': dataset[i].get('response', ''),
+            'ground_truth': dataset[i].get('ground_truth', ''),
+            'context': dataset[i].get('context', ''),
+            'retrieved_documents': dataset[i].get('retrieved_documents', []),
+            'latency_seconds': results_individual[i].get('latency_seconds', 0),
+            'metrics': metrics
+        }
+        full_results.append(result)
+
+    with open(run_dir / "full_results.json", 'w', encoding='utf-8') as f:
+        json.dump(full_results, f, indent=2)
+
+    # Aggregated summary
+    summary = {
+        'timestamp': timestamp,
+        'total_examples': len(metrics_list),
+        'metrics': {},
+        'passed': 0,
+        'total': len(aggregated_metrics),
+        'overall': 'FAIL'
+    }
+    for metric_key in aggregated_metrics:
+        score = aggregated.get(metric_key, 0)
+        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        status = 'PASS' if score >= threshold else 'FAIL'
+        if status == 'PASS':
+            summary['passed'] += 1
+        summary['metrics'][metric_key] = {
+            'score': round(score, 4),
+            'threshold': threshold,
+            'status': status
+        }
+    summary['overall'] = 'PASS' if summary['passed'] == summary['total'] else 'FAIL'
+
+    with open(run_dir / "summary.json", 'w', encoding='utf-8') as f:
+        json.dump(summary, f, indent=2)
+
+    return run_dir
+
+
+# Print summary table
+passed_count = print_summary_table(aggregated_eval_metrics)
+
+# Save to directory
+results_dir = save_results_json(eval_metrics, aggregated_eval_metrics, eval_golden_dataset_enhanced, start_timestamp)
+print(f"\nResults saved to: {results_dir}")
+print(f"  - full_results.json (query, response, ground_truth + metrics)")
+print(f"  - summary.json (aggregated metrics with pass/fail)")
+
+# Log to Application Insights
 properties = {
     'tag': log_tag,
     'start_timestamp': start_timestamp,
     'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+    'passed_metrics': passed_count,
+    'total_metrics': len(aggregated_metrics),
     **aggregated_eval_metrics
 }
 log_message(
