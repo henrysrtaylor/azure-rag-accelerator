@@ -4,6 +4,8 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 
 > NOTE: This is an accelerator/reference implementation, not a production-ready product. Customize for your specific use case.
 
+![RAG Assistant Chat Interface](docs/images/chat_screenshot.png)
+
 ## 📋 Core Components
 - Search: Azure AI Search with hybrid (vector + keyword) and semantic ranking
 - LLM: Azure Foundry for chat completion and query refinement
@@ -13,10 +15,13 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Citations: Automatic reference tracking
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
+- Evaluation: Script to evaluate solution based on `data/evaluation/golden_dataset`
+- Entry: Streamlit, CLI, API from backend
 
 ## 📈 Future Roadmap
-- Front-end: Streamlit app for ease of use
 - Infrastructure: Terraform modules for full deployment
+- Data: Load your documents into the local directory and send them to Data Lake
+- Evaluation: Cleaner script output, front-end for testing and metrics.
 
 ## 📂 Project Structure
 
@@ -34,8 +39,10 @@ azure-rag-accelerator/
 │   └── prompts/               # Markdown prompt templates
 ├── app/                       # Application scripts
 │   ├── backend_server.py      # FastAPI REST API
-│   ├── application_script.py  # CLI chat client
-│   └── evaluation_script.py   # RAG evaluation
+│   ├── streamlit_app.py       # Streamlit web UI
+│   └── cli_app.py             # CLI chat client (legacy)
+├── evaluation/                # RAG evaluation
+│   └── evaluation_script.py   # Quality metrics runner
 ├── data/                      # Source documents for indexing
 ├── infrastructure/            # Deployment resources
 │   ├── ai_search/             # Index & indexer setup
@@ -79,51 +86,28 @@ Content safety thresholds (0-7, higher = more permissive):
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+See [docs/README_getting_started.md](docs/README_getting_started.md) for full infrastructure and application setup instructions. Or, if comfortable and infrastructure is in place, use the quick start below:
+
+**Quick Start:**
 
 ```bash
 git clone "https://github.com/henrysrtaylor/azure-rag-accelerator.git"
 cd azure-rag-accelerator
-```
-
-### 2. Set Up Virtual Environment
-
-Windows:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-```
-
-macOS/Linux:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install Library
-
-```bash
 pip install -r requirements.txt
+
+# Login to Azure (required for DefaultAzureCredential)
+az login
+
+# Configure .env with Azure resource details
+
+# Terminal 1 - Start backend
+uvicorn app.backend_server:app --reload
+
+# Terminal 2 - Start frontend
+streamlit run app/streamlit_app.py
 ```
 
-### 4. Configure Environment
-
-Copy `.env.example` to `.env` and fill in your Azure resource details:
-
-```env
-# Azure AI Search
-AZURE_SEARCH_SERVICE_ENDPOINT=https://<search-service>.search.windows.net
-
-# Azure AI Foundry
-AZURE_FOUNDRY_ENDPOINT=https://<foundry>.openai.azure.com
-AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL=gpt-4o
-
-# Azure Content Safety
-AZURE_CONTENT_SAFETY_ENDPOINT=https://<content-safety>.cognitiveservices.azure.com
-```
-
-### 5. Start Docker Container...
-
+Open http://localhost:8501 in your browser.
 
 
 ## 🔐 Document-Level Security
@@ -134,6 +118,8 @@ DLS restricts search results based on user's Entra ID security groups:
 2. User authenticates via MSAL and receives JWT with `groups` claim
 3. `build_security_filter()` creates OData filter from user's groups
 4. Azure AI Search only returns documents matching user's groups
+
+> **Note:** DLS can be disabled via the `OPTION_SECURITY_GROUPS` environment variable or toggled off in the Streamlit UI for full file access.
 
 See [docs/README_permissions.md](docs/README_permissions.md) for setup details.
 
