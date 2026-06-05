@@ -7,7 +7,6 @@ LLM-judged metrics are normalized to 0-1 scale (original 1-5 divided by 5).
 # LLM-judged metric thresholds (normalized 0-1 scale)
 # Original SDK threshold=3 on 1-5 scale = 0.6 normalized
 THRESHOLD_GROUNDEDNESS = 0.6
-THRESHOLD_SIMILARITY = 0.6
 THRESHOLD_RELEVANCE = 0.6
 THRESHOLD_FLUENCY = 0.6
 THRESHOLD_COHERENCE = 0.6
@@ -27,7 +26,6 @@ SDK_LLM_THRESHOLD = 3
 # Mapping of metric keys to their thresholds
 METRIC_THRESHOLDS = {
     'groundedness.gpt_groundedness': THRESHOLD_GROUNDEDNESS,
-    'similarity.gpt_similarity': THRESHOLD_SIMILARITY,
     'relevance.gpt_relevance': THRESHOLD_RELEVANCE,
     'fluency.gpt_fluency': THRESHOLD_FLUENCY,
     'coherence.gpt_coherence': THRESHOLD_COHERENCE,

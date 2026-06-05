@@ -1,7 +1,7 @@
 """Prompts package for raglib.
 
 This package provides utilities for loading and formatting markdown prompt templates.
-Prompts are stored in raglib/prompts/markdown/ and support variable substitution.
+Prompts are stored in raglib/prompts/agent/ and support variable substitution.
 
 Usage:
     from raglib.prompts import markdown_loader
