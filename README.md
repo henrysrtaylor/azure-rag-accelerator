@@ -13,9 +13,9 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Citations: Automatic reference tracking
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
+- Entry: Streamlit, CLI, API from backend
 
 ## 📈 Future Roadmap
-- Front-end: Streamlit app for ease of use
 - Infrastructure: Terraform modules for full deployment
 
 ## 📂 Project Structure
@@ -34,7 +34,8 @@ azure-rag-accelerator/
 │   └── prompts/               # Markdown prompt templates
 ├── app/                       # Application scripts
 │   ├── backend_server.py      # FastAPI REST API
-│   ├── application_script.py  # CLI chat client
+│   ├── streamlit_app.py       # Streamlit web UI
+│   ├── cli_app.py             # CLI chat client (legacy)
 │   └── evaluation_script.py   # RAG evaluation
 ├── data/                      # Source documents for indexing
 ├── infrastructure/            # Deployment resources
@@ -111,18 +112,33 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and fill in your Azure resource details:
 
 ```env
-# Azure AI Search
 AZURE_SEARCH_SERVICE_ENDPOINT=https://<search-service>.search.windows.net
-
-# Azure AI Foundry
-AZURE_FOUNDRY_ENDPOINT=https://<foundry>.openai.azure.com
-AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL=gpt-4o
-
-# Azure Content Safety
-AZURE_CONTENT_SAFETY_ENDPOINT=https://<content-safety>.cognitiveservices.azure.com
+AZURE_FOUNDRY_ENDPOINT=https://<foundry>.services.ai.azure.com
 ```
 
-### 5. Start Docker Container...
+### 5. Run the Application
+
+**Option A: Streamlit Web UI (recommended)**
+
+```bash
+# Terminal 1 - Start backend API
+uvicorn app.backend_server:app --reload
+
+# Terminal 2 - Start Streamlit frontend
+streamlit run app/streamlit_app.py
+```
+
+Open http://localhost:8501 in your browser.
+
+**Option B: CLI Client**
+
+```bash
+# Start backend API first
+uvicorn app.backend_server:app --reload
+
+# In another terminal
+python -m app.cli_app
+```
 
 
 

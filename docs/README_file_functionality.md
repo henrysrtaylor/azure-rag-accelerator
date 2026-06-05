@@ -44,8 +44,11 @@ Markdown template management. Loads `.md` files from the prompts folder with sup
 ### `backend_server.py`
 FastAPI REST API server. Exposes `/chat` endpoint for RAG interactions, `/guardrails` for testing content moderation, and `/health_check` for monitoring. Handles request/response serialization and security group passthrough.
 
-### `application_script.py`
-Interactive command-line chat client. Authenticates users via MSAL (browser-based Microsoft login), extracts security groups from the JWT token, and provides a terminal-based conversation interface.
+### `streamlit_app.py`
+Web-based chat interface built with Streamlit. Provides a modern UI with MSAL authentication, configurable options (guardrails, DLS, references, suggested questions), and real-time chat with the RAG backend. Calls the FastAPI backend via HTTP.
+
+### `cli_app.py`
+Interactive command-line chat client (legacy). Authenticates users via MSAL (browser-based Microsoft login), extracts security groups from the JWT token, and provides a terminal-based conversation interface. Useful for testing and headless environments.
 
 ---
 

@@ -9,7 +9,7 @@ This document describes the end-to-end flow of the RAG solution from user input 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   User Input    │────▶│   Application   │────▶│   RAG Engine    │
-│  (CLI or API)   │     │     Layer       │     │   (raglib)      │
+│ (Web, CLI, API) │     │     Layer       │     │   (raglib)      │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
                                                         │
                         ┌───────────────────────────────┼───────────────────────────┐
@@ -26,19 +26,25 @@ This document describes the end-to-end flow of the RAG solution from user input 
 
 ## Application Entry Points
 
-### 1. REST API (`backend_server.py`)
+### 1. Streamlit Web UI (`streamlit_app.py`) - Recommended
+- Modern web-based chat interface
+- User authenticates via browser (MSAL)
+- Configurable toggles for auth, guardrails, references, suggested questions
+- Displays response with expandable citations and suggestions
+
+### 2. REST API (`backend_server.py`)
 - FastAPI server exposing `/chat` endpoint
 - Receives JSON request with chat history and options
 - Security groups passed directly in request body
 - Returns structured JSON response
 
-### 2. CLI Application (`application_script.py`)
+### 3. CLI Application (`cli_app.py`) - Legacy
 - Interactive terminal-based chat
 - User authenticates via browser (MSAL)
 - Security groups extracted from JWT token automatically
 - Displays response with citations and suggested questions
 
-### 3. Evaluation Script (`evaluation_script.py`)
+### 4. Evaluation Script (`evaluation_script.py`)
 - Batch evaluation against test datasets
 - Runs queries without DLS (full access mode)
 - Measures retrieval and generation quality
@@ -48,7 +54,7 @@ This document describes the end-to-end flow of the RAG solution from user input 
 
 ## Request Flow
 
-### Step 1: Authentication (CLI only)
+### Step 1: Authentication (Web UI and CLI)
 User logs in via Microsoft Entra ID browser flow. The application extracts security group GUIDs from the JWT token's `groups` claim. These groups determine which documents the user can access.
 
 ### Step 2: User Guardrail Checks
