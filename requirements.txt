@@ -15,5 +15,6 @@ azure-core==1.41.0
 msal>=1.35.1
 openai==2.36.0
 azure-functions==1.15.0
+tqdm>=4.66.0
 
 -e .
