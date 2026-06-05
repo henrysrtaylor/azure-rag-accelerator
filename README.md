@@ -37,7 +37,7 @@ azure-rag-accelerator/
 │   ├── enhance.py             # Query refinement & suggestions
 │   ├── config.py              # Azure client factories
 │   ├── log.py                 # Application Insights logging
-│   └── prompts/               # Markdown prompt templates
+│   └── prompts/               # Agent prompt templates
 ├── app/                       # Application scripts
 │   ├── backend_server.py      # FastAPI REST API
 │   ├── streamlit_app.py       # Streamlit web UI

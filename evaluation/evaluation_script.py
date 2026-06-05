@@ -1,7 +1,7 @@
 """RAG evaluation script using Azure AI Evaluation SDK.
 
 Runs the RAG pipeline against a golden dataset and computes metrics:
-groundedness, similarity, relevance, fluency, coherence, F1, and retrieval precision/recall.
+groundedness, relevance, fluency, coherence, F1, and retrieval precision/recall.
 """
 import json
 import os
@@ -17,12 +17,12 @@ from azure.ai.evaluation import (
     FluencyEvaluator,
     GroundednessEvaluator,
     RelevanceEvaluator,
-    SimilarityEvaluator,
     evaluate,
 )
 
 from eval_config import SDK_LLM_THRESHOLD, METRIC_THRESHOLDS
 from raglib.config import load_env_vars
+from raglib.eval import precision_recall_at_k
 from raglib.log import log_message
 from raglib.permissions import build_security_filter
 from raglib.pipeline import evaluation_chat_logic
@@ -44,17 +44,13 @@ with open(LOCAL_DATASET_PATH, 'r', encoding='utf-8') as f:
 model_config = {
     "type": "azure_openai",
     "azure_endpoint": os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-    "azure_deployment": os.getenv("AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL"),
+    "azure_deployment": os.getenv("AZURE_FOUNDRY_JUDGE_MODEL"),
     "api_version": os.getenv("AZURE_FOUNDRY_API_VERSION"),
 }
 evaluators = {
     "groundedness": {
         "evaluator": GroundednessEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
         "column_mapping": {"response": "${data.response}", "context": "${data.context}"}
-    },
-    "similarity": {
-        "evaluator": SimilarityEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
-        "column_mapping": {"response": "${data.response}", "ground_truth": "${data.ground_truth}"}
     },
     "f1_score": {
         "evaluator": F1ScoreEvaluator(),
@@ -73,31 +69,6 @@ evaluators = {
         "column_mapping": {"response": "${data.response}"}
     }
 }
-
-
-def precision_recall_at_k(
-    response_documents: list[str],
-    ground_truth_documents: list[str],
-    k: int
-) -> tuple[float, float]:
-    """
-    Calculate precision@k and recall@k for retrieval evaluation.
-
-    Args:
-        response_documents: Retrieved document titles.
-        ground_truth_documents: Expected relevant document titles.
-        k: Number of top results to consider.
-
-    Returns:
-        Tuple of (precision@k, recall@k).
-    """
-    if k == 0 or len(response_documents) == 0:
-        return 0.0, 0.0
-    ground_truth_set = set(ground_truth_documents)
-    top_k_responses = set(response_documents[:k])
-    precision = len(ground_truth_set & top_k_responses) / k
-    recall = len(ground_truth_set & top_k_responses) / len(ground_truth_set)
-    return precision, recall
 
 
 latency_results: list[float] = []
@@ -163,7 +134,6 @@ for i, d in enumerate(results_individual):
 
 normalise_llm_judgement = [
     'groundedness.gpt_groundedness',
-    'similarity.gpt_similarity',
     'relevance.gpt_relevance',
     'fluency.gpt_fluency',
     'coherence.gpt_coherence',
@@ -180,7 +150,6 @@ aggregated_metrics = sorted(normalise_llm_judgement + [
 tracked_metrics = sorted(aggregated_metrics + [
     "groundedness.groundedness_result",
     "groundedness.groundedness_reason",
-    "similarity.similarity_result",
     "f1_score.f1_result",
     "relevance.relevance_result",
     "relevance.relevance_reason",
@@ -213,7 +182,6 @@ def print_summary_table(metrics: dict) -> int:
     passed = 0
     friendly_names = {
         'groundedness.gpt_groundedness': 'Groundedness',
-        'similarity.gpt_similarity': 'Similarity',
         'relevance.gpt_relevance': 'Relevance',
         'fluency.gpt_fluency': 'Fluency',
         'coherence.gpt_coherence': 'Coherence',
