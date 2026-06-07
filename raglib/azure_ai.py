@@ -1,14 +1,15 @@
 """Azure AI service integrations for search and LLM operations.
 
 Provides functions for document retrieval via Azure AI Search (hybrid search)
-and LLM interactions via Azure OpenAI (chat completions, embeddings).
+and LLM interactions via Azure AI Inference (chat completions).
 """
 import os
 from typing import Optional
 
+from azure.ai.inference.models import UserMessage, SystemMessage, AssistantMessage
 from azure.search.documents.models import VectorizableTextQuery
 
-from raglib.config import get_project_names, get_search_client, get_openai_client
+from raglib.config import get_project_names, get_search_client, get_chat_client
 
 
 def retrieve_documents(
@@ -61,7 +62,7 @@ def retrieve_documents(
 
 def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> str:
     """
-    Send a chat completion request to Azure OpenAI.
+    Send a chat completion request via Azure AI Inference.
 
     Args:
         deployment_name: The model deployment name (e.g., 'gpt-5').
@@ -70,16 +71,27 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     Returns:
         The model's response text, stripped of leading/trailing whitespace.
     """
-    open_ai_client = get_openai_client()
+    chat_client = get_chat_client(deployment_name)
     
-    # Get reasoning effort from param or env, default to 'low' for fast responses
+    # Convert dict messages to typed message objects
+    typed_messages = []
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role == "system":
+            typed_messages.append(SystemMessage(content=content))
+        elif role == "assistant":
+            typed_messages.append(AssistantMessage(content=content))
+        else:
+            typed_messages.append(UserMessage(content=content))
+    
+    # reasoning_effort: For reasoning models (gpt-5, o3), controls thinking depth.
+    # Ignored for non-reasoning models (gpt-5-mini).
     effort = os.getenv("AZURE_FOUNDRY_REASONING_EFFORT", "low")
     
-    # reasoning_effort: For reasoning models (gpt-5, o3), controls thinking depth. Ignored for non-reasoning models (gpt-5-mini).
-    response = open_ai_client.chat.completions.create(
-        model=deployment_name,
-        messages=messages,
-        reasoning_effort=effort
+    response = chat_client.complete(
+        messages=typed_messages,
+        model_extras={"reasoning_effort": effort}
     )
-    return response.choices[0].message.content.strip() # Return the answer from the model
+    return response.choices[0].message.content.strip()
 
