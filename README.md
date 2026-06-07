@@ -7,8 +7,10 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 ![RAG Assistant Chat Interface](docs/images/chat_screenshot.png)
 
 ## 📋 Core Components
-- Search: Azure AI Search with hybrid (vector + keyword) and semantic ranking
+- Entry: Streamlit chat application front-end, CLI, API from backend
 - LLM: Azure Foundry for chat completion and query refinement
+- Model Agnostic: Uses `azure-ai-inference` SDK - on Foundry, swap OpenAI, Anthropic, Llama, Mistral, Phi, or others models without code changes.
+- Search: Azure AI Search with hybrid (vector + keyword) and semantic ranking
 - Embeddings: Azure AI Foundry embeddings for vector search
 - Guardrails: Content Safety API for hate/violence/sexual/self-harm detection + jailbreak prevention + on topic detection
 - Security: Document-Level Security (DLS) via Entra ID group-based filtering
@@ -16,12 +18,10 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
-- Entry: Streamlit, CLI, API from backend
 
 ## 📈 Future Roadmap
 - Infrastructure: Terraform modules for full deployment
 - Data: Load documents into the local directory and send them to Data Lake
-- Model Flexibility: Migrate to `azure-ai-inference` SDK for model-agnostic LLM calls (any Foundry model) instead of `openai` and `azure-ai-evaluation`
 
 ## 📂 Project Structure
 
