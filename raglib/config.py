@@ -7,12 +7,12 @@ import os
 from functools import lru_cache
 
 from azure.ai.contentsafety import ContentSafetyClient
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.ai.inference import ChatCompletionsClient
+from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 
 
 def load_env_vars(path: str | None = None) -> None:
@@ -77,18 +77,34 @@ def get_search_client() -> SearchClient:
     )
 
 
-@lru_cache(maxsize=1)
-def get_openai_client() -> AzureOpenAI:
-    """Get cached AzureOpenAI client for LLM operations."""
+@lru_cache(maxsize=4)
+def get_chat_client(deployment_name: str) -> ChatCompletionsClient:
+    """
+    Get cached ChatCompletionsClient for LLM operations.
+    
+    Args:
+        deployment_name: Model deployment name (e.g., 'gpt-5', 'Llama-3-70b').
+    
+    Returns:
+        ChatCompletionsClient configured for the specified deployment.
+    """
     load_env_vars()
-    token_provider = get_bearer_token_provider(
-        _get_credential(),
-        "https://cognitiveservices.azure.com/.default"
-    )
-    return AzureOpenAI(
-        azure_endpoint=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-        api_version=os.getenv("AZURE_FOUNDRY_API_VERSION"),
-        azure_ad_token_provider=token_provider
+    base = os.getenv('AZURE_FOUNDRY_ENDPOINT')
+    api_version = os.getenv('AZURE_FOUNDRY_API_VERSION', '2024-06-01')
+    
+    # OpenAI models use /openai/deployments/, others use /models/
+    openai_prefixes = ('gpt-', 'o1', 'o3', 'text-embedding', 'dall-e', 'whisper', 'tts')
+    if deployment_name.lower().startswith(openai_prefixes):
+        endpoint = f"{base}/openai/deployments/{deployment_name}"
+    else:
+        # Serverless/MaaS models (Llama, Mistral, Phi, etc.)
+        endpoint = f"{base}/models/{deployment_name}"
+    
+    return ChatCompletionsClient(
+        endpoint=endpoint,
+        credential=_get_credential(),
+        credential_scopes=["https://cognitiveservices.azure.com/.default"],
+        api_version=api_version
     )
 
 
