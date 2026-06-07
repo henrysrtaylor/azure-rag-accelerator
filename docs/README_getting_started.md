@@ -106,7 +106,7 @@ python -m app.cli_app
 
 ## 4. Docker (Production Deployment - Optional)
 
-Docker is intended for production deployments, not local development.
+We have provided a [dockerfile](../app/dockerfile) to use as reference if you wish to build a container.
 
 **Build:**
 
@@ -119,8 +119,8 @@ docker run -p 8501:8501 -p 8000:8000 rag-accelerator
 
 | Deployment | Auth Method |
 |------------|-------------|
-| **Local Docker** | Service Principal credentials in `.env` (see below) |
-| **Azure Container Apps / AKS** | Enable Managed Identity - Azure handles auth automatically |
+| Local Docker | Service Principal credentials in `.env` (see below) |
+| Azure Container Apps / AKS | Enable Managed Identity - Azure handles auth automatically |
 
 **For local Docker testing**, create a Service Principal with the same permissions as described in [README_permissions.md](README_permissions.md), and add to `.env`:
 

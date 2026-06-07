@@ -1,0 +1,93 @@
+[
+  {
+    "q_id": 1,
+    "seq_id": 1,
+    "query": "What is Azure Blob Storage?",
+    "ground_truth": "Azure Blob Storage is Microsoft's object storage solution for the cloud. It is optimized for storing massive amounts of unstructured data such as text, binary data, images, and documents.",
+    "ground_truth_documents": ["azure_storage_overview.pdf", "blob_storage_guide.pdf"]
+  },
+  {
+    "q_id": 2,
+    "seq_id": 1,
+    "query": "How do I create an Azure AI Search index?",
+    "ground_truth": "To create an Azure AI Search index, you define a schema with fields, data types, and attributes like searchable, filterable, and sortable. You can create indexes via the Azure portal, REST API, or SDK.",
+    "ground_truth_documents": ["ai_search_quickstart.pdf", "search_index_schema.pdf"]
+  },
+  {
+    "q_id": 3,
+    "seq_id": 1,
+    "query": "What authentication methods does Azure support?",
+    "ground_truth": "Azure supports multiple authentication methods including Microsoft Entra ID (formerly Azure AD), Managed Identity, Service Principal with certificates or secrets, Azure CLI authentication, and shared access keys for storage services.",
+    "ground_truth_documents": ["azure_authentication.pdf", "entra_id_overview.pdf"]
+  },
+  {
+    "q_id": 4,
+    "seq_id": 1,
+    "query": "What is the difference between Azure Functions and Azure Container Apps?",
+    "ground_truth": "Azure Functions is a serverless compute service for event-driven code execution with automatic scaling and per-execution billing. Azure Container Apps is a serverless container platform for running microservices and containerized applications with built-in support for Dapr, KEDA scaling, and ingress.",
+    "ground_truth_documents": ["azure_functions_overview.pdf", "container_apps_guide.pdf"]
+  },
+  {
+    "q_id": 5,
+    "seq_id": 1,
+    "query": "How does semantic ranking work in Azure AI Search?",
+    "ground_truth": "Semantic ranking in Azure AI Search uses deep learning models to re-rank search results based on semantic similarity to the query. It analyzes the meaning and context of documents rather than just keyword matching, providing more relevant results for natural language queries.",
+    "ground_truth_documents": ["semantic_search.pdf", "ai_search_ranking.pdf"]
+  },
+  {
+    "q_id": 6,
+    "seq_id": 1,
+    "query": "What is Azure AI Foundry?",
+    "ground_truth": "Azure AI Foundry is a unified platform for building, deploying, and managing AI applications. It provides access to models, tools for prompt engineering, and enterprise-grade security.",
+    "ground_truth_documents": ["ai_foundry_overview.pdf", "foundry_quickstart.pdf"]
+  },
+  {
+    "q_id": 6,
+    "seq_id": 2,
+    "query": "How do I deploy a model in Foundry?",
+    "ground_truth": "To deploy a model in Azure AI Foundry, navigate to the model catalog, select your model, configure deployment settings including compute resources and scaling options, then click deploy. You can also deploy via the SDK or REST API.",
+    "ground_truth_documents": ["ai_foundry_deployment.pdf", "model_catalog.pdf"]
+  },
+  {
+    "q_id": 7,
+    "seq_id": 1,
+    "query": "Tell me about Azure AI Search",
+    "ground_truth": "Azure AI Search is a cloud search service that provides indexing and querying capabilities. It supports full-text search, vector search, and semantic ranking.",
+    "ground_truth_documents": ["ai_search_overview.pdf", "search_features.pdf"]
+  },
+  {
+    "q_id": 7,
+    "seq_id": 2,
+    "query": "What is hybrid search?",
+    "ground_truth": "Hybrid search in Azure AI Search combines traditional keyword-based search with vector search. It uses both BM25 text matching and semantic vector similarity to find relevant documents, then fuses the results using Reciprocal Rank Fusion (RRF) for better accuracy.",
+    "ground_truth_documents": ["hybrid_search.pdf", "vector_search_guide.pdf"]
+  },
+  {
+    "q_id": 8,
+    "seq_id": 1,
+    "query": "What is Managed Identity?",
+    "ground_truth": "Managed Identity is an Azure feature that provides an automatically managed identity for applications to authenticate to Azure services without storing credentials in code.",
+    "ground_truth_documents": ["managed_identity.pdf", "azure_security.pdf"]
+  },
+  {
+    "q_id": 8,
+    "seq_id": 2,
+    "query": "What's the difference between system-assigned and user-assigned?",
+    "ground_truth": "System-assigned Managed Identity is tied to a specific Azure resource and is deleted when the resource is deleted. User-assigned Managed Identity is created as a standalone Azure resource and can be shared across multiple resources, providing more flexibility for complex architectures.",
+    "ground_truth_documents": ["managed_identity.pdf", "identity_best_practices.pdf"]
+  },
+  {
+    "q_id": 9,
+    "seq_id": 1,
+    "query": "How do I configure CORS for Azure Blob Storage?",
+    "ground_truth": "To configure CORS for Azure Blob Storage, go to the storage account in Azure portal, navigate to Settings > Resource sharing (CORS), and add rules specifying allowed origins, methods, headers, and max age. You can also configure CORS via Azure CLI, PowerShell, or the REST API.",
+    "ground_truth_documents": ["storage_cors.pdf", "blob_security.pdf"]
+  },
+  {
+    "q_id": 10,
+    "seq_id": 1,
+    "query": "What is Azure Content Safety?",
+    "ground_truth": "Azure Content Safety is an AI service that detects harmful content in text and images. It identifies categories including hate speech, violence, sexual content, and self-harm, returning severity scores to help applications moderate user-generated content.",
+    "ground_truth_documents": ["content_safety.pdf", "responsible_ai.pdf"]
+  }
+]
