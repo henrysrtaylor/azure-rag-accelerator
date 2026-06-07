@@ -5,7 +5,7 @@ LLM-judged metrics are normalized to 0-1 scale (original 1-5 divided by 5).
 """
 
 # LLM-judged metric thresholds (normalized 0-1 scale)
-# Original SDK threshold=3 on 1-5 scale = 0.6 normalized
+# Score of 3/5 = 0.6 normalized
 THRESHOLD_GROUNDEDNESS = 0.6
 THRESHOLD_RELEVANCE = 0.6
 THRESHOLD_FLUENCY = 0.6
@@ -20,16 +20,13 @@ THRESHOLD_PRECISION_AT_5 = 0.5
 THRESHOLD_RECALL_AT_1 = 0.5
 THRESHOLD_RECALL_AT_5 = 0.7  # Higher for recall - missing docs is worse than extras
 
-# SDK threshold for LLM evaluators (1-5 scale, used by Azure AI Evaluation SDK)
-SDK_LLM_THRESHOLD = 3
-
 # Mapping of metric keys to their thresholds
 METRIC_THRESHOLDS = {
-    'groundedness.gpt_groundedness': THRESHOLD_GROUNDEDNESS,
-    'relevance.gpt_relevance': THRESHOLD_RELEVANCE,
-    'fluency.gpt_fluency': THRESHOLD_FLUENCY,
-    'coherence.gpt_coherence': THRESHOLD_COHERENCE,
-    'f1_score.f1_score': THRESHOLD_F1,
+    'groundedness': THRESHOLD_GROUNDEDNESS,
+    'relevance': THRESHOLD_RELEVANCE,
+    'fluency': THRESHOLD_FLUENCY,
+    'coherence': THRESHOLD_COHERENCE,
+    'f1_score': THRESHOLD_F1,
     'retrieval_precision_at_1': THRESHOLD_PRECISION_AT_1,
     'retrieval_precision_at_5': THRESHOLD_PRECISION_AT_5,
     'retrieval_recall_at_1': THRESHOLD_RECALL_AT_1,
