@@ -1,35 +1,33 @@
-"""RAG evaluation script using Azure AI Evaluation SDK.
+"""RAG evaluation script using custom LLM-as-judge functions.
 
 Runs the RAG pipeline against a golden dataset and computes metrics:
 groundedness, relevance, fluency, coherence, F1, and retrieval precision/recall.
 """
 import json
-import os
-import tempfile
 import time
 from pathlib import Path
 
 import numpy as np
 from tqdm import tqdm
-from azure.ai.evaluation import (
-    CoherenceEvaluator,
-    F1ScoreEvaluator,
-    FluencyEvaluator,
-    GroundednessEvaluator,
-    RelevanceEvaluator,
-    evaluate,
-)
 
-from eval_config import SDK_LLM_THRESHOLD, METRIC_THRESHOLDS
+from eval_config import METRIC_THRESHOLDS
 from raglib.config import load_env_vars
-from raglib.eval import precision_recall_at_k
+from raglib.eval import (
+    precision_recall_at_k,
+    f1_score,
+    judge_groundedness,
+    judge_relevance,
+    judge_coherence,
+    judge_fluency,
+    normalize_score,
+)
 from raglib.log import log_message
 from raglib.permissions import build_security_filter
 from raglib.pipeline import evaluation_chat_logic
 
 load_env_vars()
 
-OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR = Path(__file__).parent / "results"
 
 log_enabled = True
 print_log_enabled = True
@@ -41,45 +39,27 @@ LOCAL_DATASET_PATH = Path(__file__).parent.parent / "data" / "evaluation" / "exa
 with open(LOCAL_DATASET_PATH, 'r', encoding='utf-8') as f:
     qna_set = json.load(f)
 
-model_config = {
-    "type": "azure_openai",
-    "azure_endpoint": os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-    "azure_deployment": os.getenv("AZURE_FOUNDRY_JUDGE_MODEL"),
-    "api_version": os.getenv("AZURE_FOUNDRY_API_VERSION"),
-}
-evaluators = {
-    "groundedness": {
-        "evaluator": GroundednessEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
-        "column_mapping": {"response": "${data.response}", "context": "${data.context}"}
-    },
-    "f1_score": {
-        "evaluator": F1ScoreEvaluator(),
-        "column_mapping": {"response": "${data.response}", "ground_truth": "${data.ground_truth}"}
-    },
-    "relevance": {
-        "evaluator": RelevanceEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
-        "column_mapping": {"query": "${data.query}", "response": "${data.response}"}
-    },
-    "fluency": {
-        "evaluator": FluencyEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
-        "column_mapping": {"response": "${data.response}"}
-    },
-    "coherence": {
-        "evaluator": CoherenceEvaluator(model_config, threshold=SDK_LLM_THRESHOLD),
-        "column_mapping": {"response": "${data.response}"}
-    }
-}
+# Metrics we track (all normalized to 0-1)
+aggregated_metrics = [
+    'coherence',
+    'f1_score',
+    'fluency',
+    'groundedness',
+    'relevance',
+    'retrieval_precision_at_1',
+    'retrieval_precision_at_5',
+    'retrieval_recall_at_1',
+    'retrieval_recall_at_5',
+]
 
-
-latency_results: list[float] = []
-retrieval_results: list[list[float]] = []
-eval_golden_dataset_enhanced: list[dict] = []
+results_individual: list[dict] = []
 security_filter = build_security_filter(None)
 
 print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
 
 for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     query = eval_example.get("query", "")
+    ground_truth = eval_example.get("ground_truth", "")
     ground_truth_documents = eval_example.get("ground_truth_documents", [])
 
     chat_history = [
@@ -92,81 +72,51 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
         chat_history,
         security_filter=security_filter
     )
-    answer = chat_response.get("assistant_message", {"content": ""}).get("content", "")
+    response = chat_response.get("assistant_message", {"content": ""}).get("content", "")
     context = chat_response.get("document_context", "")
     titles = [ref['text'] for ref in chat_response.get("references", [])]
-    end_time = time.time()
+    latency = time.time() - start_time
 
-    latency_results.append(end_time - start_time)
+    # Retrieval metrics (no LLM)
+    p1, r1 = precision_recall_at_k(list(set(titles)), list(set(ground_truth_documents)), 1)
+    p5, r5 = precision_recall_at_k(list(set(titles)), list(set(ground_truth_documents)), 5)
+    
+    # F1 score (no LLM)
+    f1 = f1_score(response, ground_truth)
 
-    precision_at_1, recall_at_1 = precision_recall_at_k(list(set(titles)), list(set(ground_truth_documents)), 1)
-    precision_at_5, recall_at_5 = precision_recall_at_k(list(set(titles)), list(set(ground_truth_documents)), 5)
-    retrieval_results.append([precision_at_1, precision_at_5, recall_at_1, recall_at_5])
+    # LLM judges
+    groundedness_result = judge_groundedness(query, context, response)
+    relevance_result = judge_relevance(query, response)
+    coherence_result = judge_coherence(query, response)
+    fluency_result = judge_fluency(response)
 
-    eval_example["response"] = answer
-    eval_example["context"] = context
-    eval_example["retrieved_documents"] = titles
-    eval_golden_dataset_enhanced.append(eval_example)
+    results_individual.append({
+        'query': query,
+        'response': response,
+        'ground_truth': ground_truth,
+        'context': context,
+        'retrieved_documents': titles,
+        'latency_seconds': latency,
+        # Normalized scores (0-1)
+        'groundedness': normalize_score(groundedness_result['score']),
+        'relevance': normalize_score(relevance_result['score']),
+        'coherence': normalize_score(coherence_result['score']),
+        'fluency': normalize_score(fluency_result['score']),
+        'f1_score': f1,
+        'retrieval_precision_at_1': p1,
+        'retrieval_precision_at_5': p5,
+        'retrieval_recall_at_1': r1,
+        'retrieval_recall_at_5': r5,
+        # Reasoning for debugging
+        'groundedness_reason': groundedness_result['reasoning'],
+        'relevance_reason': relevance_result['reasoning'],
+        'coherence_reason': coherence_result['reasoning'],
+        'fluency_reason': fluency_result['reasoning'],
+    })
 
-with tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False) as tmp_file:
-    for item in eval_golden_dataset_enhanced:
-        tmp_file.write(json.dumps(item) + "\n")
-
-    print(f"\n\nStarting evaluation using temp file: {tmp_file.name}\n\n")
-    results = evaluate(
-        data=tmp_file.name,
-        evaluators={k: v["evaluator"] for k, v in evaluators.items()},
-        evaluator_config={k: v["column_mapping"] for k, v in evaluators.items()},
-    )
-os.remove(tmp_file.name)
-
-results_individual = results.get("rows", [])
-results_individual = [
-    {k.replace("outputs.", "", 1) if k.startswith("outputs.") else k: v for k, v in d.items()}
-    for d in results_individual
-]
-for i, d in enumerate(results_individual):
-    d["latency_seconds"] = latency_results[i]
-    d["retrieval_precision_at_1"] = retrieval_results[i][0]
-    d["retrieval_precision_at_5"] = retrieval_results[i][1]
-    d["retrieval_recall_at_1"] = retrieval_results[i][2]
-    d["retrieval_recall_at_5"] = retrieval_results[i][3]
-
-normalise_llm_judgement = [
-    'groundedness.gpt_groundedness',
-    'relevance.gpt_relevance',
-    'fluency.gpt_fluency',
-    'coherence.gpt_coherence',
-]
-
-aggregated_metrics = sorted(normalise_llm_judgement + [
-    'f1_score.f1_score',
-    'retrieval_precision_at_1',
-    'retrieval_precision_at_5',
-    'retrieval_recall_at_1',
-    'retrieval_recall_at_5'
-])
-
-tracked_metrics = sorted(aggregated_metrics + [
-    "groundedness.groundedness_result",
-    "groundedness.groundedness_reason",
-    "f1_score.f1_result",
-    "relevance.relevance_result",
-    "relevance.relevance_reason",
-    "fluency.fluency_result",
-    "fluency.fluency_reason",
-    "coherence.coherence_result",
-    "coherence.coherence_reason",
-])
-
-eval_metrics = [
-    {key: d.get(key, None) / 5.0 if key in normalise_llm_judgement and d.get(key) is not None 
-     else d.get(key, None) for key in tracked_metrics}
-    for d in results_individual
-]
-
+# Calculate aggregated metrics
 aggregated_eval_metrics = {
-    k: float(np.mean([d[k] for d in eval_metrics if k in d and d[k] is not None]))
+    k: float(np.mean([d[k] for d in results_individual if d.get(k) is not None]))
     for k in aggregated_metrics
 }
 
@@ -181,11 +131,11 @@ def print_summary_table(metrics: dict) -> int:
 
     passed = 0
     friendly_names = {
-        'groundedness.gpt_groundedness': 'Groundedness',
-        'relevance.gpt_relevance': 'Relevance',
-        'fluency.gpt_fluency': 'Fluency',
-        'coherence.gpt_coherence': 'Coherence',
-        'f1_score.f1_score': 'F1 Score',
+        'groundedness': 'Groundedness',
+        'relevance': 'Relevance',
+        'fluency': 'Fluency',
+        'coherence': 'Coherence',
+        'f1_score': 'F1 Score',
         'retrieval_precision_at_1': 'Precision@1',
         'retrieval_precision_at_5': 'Precision@5',
         'retrieval_recall_at_1': 'Recall@1',
@@ -209,33 +159,20 @@ def print_summary_table(metrics: dict) -> int:
     return passed
 
 
-def save_results_json(metrics_list: list[dict], aggregated: dict, dataset: list[dict], timestamp: str) -> Path:
+def save_results_json(results: list[dict], aggregated: dict, timestamp: str) -> Path:
     """Save detailed results and summary to timestamped directory as JSON."""
     dir_name = timestamp.replace(':', '-').replace(' ', '_')
     run_dir = OUTPUT_DIR / dir_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    # Full results with query/response/ground_truth + all metrics
-    full_results = []
-    for i, metrics in enumerate(metrics_list):
-        result = {
-            'query': dataset[i].get('query', ''),
-            'response': dataset[i].get('response', ''),
-            'ground_truth': dataset[i].get('ground_truth', ''),
-            'context': dataset[i].get('context', ''),
-            'retrieved_documents': dataset[i].get('retrieved_documents', []),
-            'latency_seconds': results_individual[i].get('latency_seconds', 0),
-            'metrics': metrics
-        }
-        full_results.append(result)
-
+    # Full results - already has query/response/ground_truth + metrics
     with open(run_dir / "full_results.json", 'w', encoding='utf-8') as f:
-        json.dump(full_results, f, indent=2)
+        json.dump(results, f, indent=2)
 
     # Aggregated summary
     summary = {
         'timestamp': timestamp,
-        'total_examples': len(metrics_list),
+        'total_examples': len(results),
         'metrics': {},
         'passed': 0,
         'total': len(aggregated_metrics),
@@ -264,7 +201,7 @@ def save_results_json(metrics_list: list[dict], aggregated: dict, dataset: list[
 passed_count = print_summary_table(aggregated_eval_metrics)
 
 # Save to directory
-results_dir = save_results_json(eval_metrics, aggregated_eval_metrics, eval_golden_dataset_enhanced, start_timestamp)
+results_dir = save_results_json(results_individual, aggregated_eval_metrics, start_timestamp)
 print(f"\nResults saved to: {results_dir}")
 print(f"  - full_results.json (query, response, ground_truth + metrics)")
 print(f"  - summary.json (aggregated metrics with pass/fail)")
@@ -281,7 +218,7 @@ properties = {
 log_message(
     should_log=log_enabled,
     print_message=print_log_enabled,
-    message=f"Evaluation completed with {len(eval_metrics)} examples.",
+    message=f"Evaluation completed with {len(results_individual)} examples.",
     level=20,
     additional_properties=properties
 )
