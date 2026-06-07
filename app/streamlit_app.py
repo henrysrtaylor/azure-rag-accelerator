@@ -92,6 +92,8 @@ if "opt_references" not in st.session_state:
     st.session_state.opt_references = DEFAULT_SHOW_REFERENCES
 if "opt_suggested_qs" not in st.session_state:
     st.session_state.opt_suggested_qs = DEFAULT_SHOW_SUGGESTED_QS
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
 
 # Sidebar - show toggles before auth (disabled after)
 with st.sidebar:
@@ -177,11 +179,18 @@ for message in st.session_state.messages:
                     st.markdown(f"**[{ref['id']}]** {ref['text']}")
         if st.session_state.opt_suggested_qs and "suggested_questions" in message and message["suggested_questions"]:
             with st.expander("💡 Suggested Questions"):
-                for sq in message["suggested_questions"]:
-                    st.markdown(f"- {sq['text']}")
+                for i, sq in enumerate(message["suggested_questions"]):
+                    if st.button(sq['text'], key=f"sq_hist_{id(message)}_{i}", use_container_width=True):
+                        st.session_state.pending_question = sq['text']
+                        st.rerun()
 
-# Chat input
-if prompt := st.chat_input("Ask a question..."):
+# Chat input - check for pending question from clicked suggestion
+prompt = st.chat_input("Ask a question...")
+if st.session_state.pending_question:
+    prompt = st.session_state.pending_question
+    st.session_state.pending_question = None
+
+if prompt:
     # Display user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -232,8 +241,10 @@ if prompt := st.chat_input("Ask a question..."):
                     
                     if st.session_state.opt_suggested_qs and suggested_questions:
                         with st.expander("💡 Suggested Questions"):
-                            for sq in suggested_questions:
-                                st.markdown(f"- {sq['text']}")
+                            for i, sq in enumerate(suggested_questions):
+                                if st.button(sq['text'], key=f"sq_new_{i}", use_container_width=True):
+                                    st.session_state.pending_question = sq['text']
+                                    st.rerun()
                     
                     st.session_state.messages.append({
                         "role": "assistant",
