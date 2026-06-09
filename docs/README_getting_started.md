@@ -2,12 +2,63 @@
 
 This guide covers infrastructure setup and application deployment.
 
+## Deployment Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STEP 1: Run CLI Script                                                      │
+│                                                                              │
+│  .\deploy-infrastructure.ps1 -Prefix "myrag" -Location "uksouth" -Sub "..."│
+│                                                                              │
+│  Parameters:                                                                 │
+│    • Prefix       - Name prefix for all resources (e.g., "myrag")           │
+│    • Location     - Azure region (e.g., "uksouth", "eastus")                │
+│    • SubscriptionId - Your Azure subscription ID                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STEP 2: Script Creates Azure Resources                                     │
+│                                                                              │
+│  ├── myrag-rg            (Resource Group)                                   │
+│  ├── myragfoundry        (AI Foundry + GPT, Embeddings, Content Safety)     │
+│  ├── myragsearch         (AI Search)                                        │
+│  ├── myragstorage        (Blob Storage + containers)                        │
+│  ├── myrag-func          (Function App for DLS)                             │
+│  ├── myrag-insights      (Application Insights)                             │
+│  └── Managed Identities + RBAC permissions between resources                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STEP 3: Script Outputs .env Configuration                                  │
+│                                                                              │
+│  Writes to .env (or prints to console):                                     │
+│                                                                              │
+│    AZURE_FOUNDRY_ENDPOINT=https://myragfoundry.openai.azure.com/            │
+│    AZURE_SEARCH_SERVICE_ENDPOINT=https://myragsearch.search.windows.net     │
+│    BLOB_ACCOUNT_URL=https://myragstorage.blob.core.windows.net              │
+│    LOGGING_CONNECTION_STRING=InstrumentationKey=...                         │
+│    ...                                                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  STEP 4: Manual Steps (see docs)                                            │
+│                                                                              │
+│  ├── Create App Registrations in Entra ID (User Auth, Function Auth)       │
+│  ├── Configure Function App authentication                                  │
+│  ├── Create Security Groups + update document_security_groups.json         │
+│  ├── Deploy Function App code: func azure functionapp publish              │
+│  └── Run index/indexer: python infrastructure/ai_search/index.py           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 1. Infrastructure Setup
 
 Infrastructure setup will deploy the following Azure resources in a fresh resource group with Managed Identity enabled between them:
-
 - Azure AI Search
 - Azure AI Foundry (LLM, Embeddings, Content Safety)
 - Azure Blob Storage
@@ -17,8 +68,8 @@ Infrastructure setup will deploy the following Azure resources in a fresh resour
 See [README_permissions.md](README_permissions.md) for required permissions and access configuration.
 
 **Options:**
-- **Terraform (recommended):** Run the Terraform scripts in `infrastructure/terraform/` - *coming soon*
-- **Manual:** If comfortable, provision resources yourself following the permissions guide
+- **CLI Scripts:** Run the Azure CLI scripts in `infrastructure/deploy/` - *coming soon*
+- **Manual:** If comfortable, provision resources and setup Managed Identities yourself following the permissions guide.
 
 ---
 
@@ -76,7 +127,7 @@ Run services separately for development with hot-reload.
 az login
 ```
 
-> **Note:** Your Azure account needs appropriate permissions to access Search, AI Foundry, and other resources. See [README_permissions.md](README_permissions.md) for required access. Terraform will configure these automatically when infrastructure is deployed.
+> **Note:** Your Azure account needs appropriate permissions to access Search, AI Foundry, and other resources. See [README_permissions.md](README_permissions.md) for required access.
 
 Then start the services:
 
@@ -134,4 +185,4 @@ Then rebuild the image to include the updated `.env`.
 
 **For Azure deployments**, enable Managed Identity on your Container App or AKS cluster and grant it access to your Azure resources - no credentials needed in the image.
 
-> **Note:** The Service Principal or Managed Identity needs appropriate permissions to access Azure resources. See [README_permissions.md](README_permissions.md) for required access. Terraform will configure these automatically if this option is followed.
+> **Note:** The Service Principal or Managed Identity needs appropriate permissions to access Azure resources. See [README_permissions.md](README_permissions.md) for required access.
