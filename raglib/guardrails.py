@@ -71,7 +71,7 @@ def detect_jailbreak(text: str) -> bool:
     """
     content_mod_client = get_content_safety_client()
     content_mod_endpoint = os.getenv("AZURE_CONTENT_MODERATOR_ENDPOINT")
-    api_version = os.getenv("AZURE_CONTENT_SAFETY_API_VERSION", "2024-09-01")
+    api_version = os.getenv("AZURE_CONTENT_MODERATOR_API_VERSION", "2024-09-01")
     
     request = HttpRequest(
         method="POST",

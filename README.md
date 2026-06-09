@@ -20,7 +20,7 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
 
 ## 📈 Future Roadmap
-- Infrastructure: Terraform modules for full deployment
+- Infrastructure: Azure CLI deployment scripts
 - Data: Load documents into the local directory and send them to Data Lake
 
 ## 📂 Project Structure
@@ -48,7 +48,8 @@ azure-rag-accelerator/
 ├── data/                      # Source documents for indexing and evaluation
 ├── infrastructure/            # Deployment resources
 │   ├── ai_search/             # Index & indexer setup
-│   └── functions/             # Azure Function for DLS
+│   ├── functions/             # Azure Function for DLS
+│   └── deploy/                # Azure CLI deployment scripts
 ├── docs/                      # Documentation
 ├── .env                       # Environment configuration
 ├── requirements.txt           # Dependencies
