@@ -1,0 +1,23 @@
+[
+  {
+    "name": "gpt-5.4",
+    "version": "2026-03-05",
+    "format": "OpenAI",
+    "capacity": 10,
+    "description": "large/reasoning model"
+  },
+  {
+    "name": "gpt-5.4-mini",
+    "version": "2026-03-17",
+    "format": "OpenAI",
+    "capacity": 10,
+    "description": "small + judge model"
+  },
+  {
+    "name": "text-embedding-3-large",
+    "version": "1",
+    "format": "OpenAI",
+    "capacity": 10,
+    "description": "embeddings"
+  }
+]

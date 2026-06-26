@@ -105,7 +105,6 @@ def health_check() -> dict:
             "AZURE_SEARCH_PROJECT_PREFIX",
             "BLOB_ACCOUNT_NAME",
             "BLOB_CONTAINER_NAME_DOCUMENTS",
-            "BLOB_CONTAINER_SUB_FOLDER",
             "BLOB_CONTAINER_NAME_EVAL",
             "BLOB_DOCUMENT_NAME_EVAL",
             "BLOB_ACCOUNT_URL",
