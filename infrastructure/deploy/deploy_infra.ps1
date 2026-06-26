@@ -119,39 +119,85 @@ Write-Host $divider -ForegroundColor Cyan
 
 $StorageScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Storage/storageAccounts/$StorageAccount"
 $SearchScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Search/searchServices/$SearchService"
-$AIScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup"
+$AIScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.CognitiveServices/accounts/$AIServices"
+$AppInsightsScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Insights/components/$AppInsights"
+
+$currentUserId = (az ad signed-in-user show --query id -o tsv)
 
 $rbacAssigned = @()
 $rbacFailed = @()
 
-# 1. Search -> Storage (Blob Data Reader)
-Write-Host "`n[1/4] Search MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
+# Search MI Roles
+Write-Host "`n[1/11] Search MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $SearchPrincipalId --role "Storage Blob Data Reader" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Storage Blob Data Reader" }
 else { $rbacFailed += "Search MI -> Storage Blob Data Reader" }
 
-# 2. Search -> Storage (Blob Data Contributor)
-Write-Host "[2/4] Search MI -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
+Write-Host "[2/11] Search MI -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $SearchPrincipalId --role "Storage Blob Data Contributor" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Storage Blob Data Contributor" }
 else { $rbacFailed += "Search MI -> Storage Blob Data Contributor" }
 
-# 3. Function -> AI Services (Cognitive Services User)
-Write-Host "[3/4] Function MI -> AI Services (Cognitive Services User)..." -ForegroundColor Yellow
+Write-Host "[3/11] Search MI -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $SearchPrincipalId --role "Cognitive Services OpenAI User" --scope $AIScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Cognitive Services OpenAI User" }
+else { $rbacFailed += "Search MI -> Cognitive Services OpenAI User" }
+
+# Function MI Roles
+Write-Host "[4/11] Function MI -> AI Services (Cognitive Services User)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $FunctionPrincipalId --role "Cognitive Services User" --scope $AIScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Cognitive Services User" }
 else { $rbacFailed += "Function MI -> Cognitive Services User" }
 
-# 4. Function -> Search (Search Index Data Reader)
-Write-Host "[4/4] Function MI -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
+Write-Host "[5/11] Function MI -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $FunctionPrincipalId --role "Search Index Data Reader" --scope $SearchScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Search Index Data Reader" }
 else { $rbacFailed += "Function MI -> Search Index Data Reader" }
 
+Write-Host "[6/11] Function MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $FunctionPrincipalId --role "Storage Blob Data Reader" --scope $StorageScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Storage Blob Data Reader" }
+else { $rbacFailed += "Function MI -> Storage Blob Data Reader" }
+
+# Current User Roles
+Write-Host "[7/11] Current User -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $currentUserId --role "Storage Blob Data Contributor" --scope $StorageScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Storage Blob Data Contributor" }
+else { $rbacFailed += "Current User -> Storage Blob Data Contributor" }
+
+Write-Host "[8/11] Current User -> Search (Search Service Contributor)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $currentUserId --role "Search Service Contributor" --scope $SearchScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Search Service Contributor" }
+else { $rbacFailed += "Current User -> Search Service Contributor" }
+
+Write-Host "[9/11] Current User -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $currentUserId --role "Search Index Data Reader" --scope $SearchScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Search Index Data Reader" }
+else { $rbacFailed += "Current User -> Search Index Data Reader" }
+
+Write-Host "[10/11] Current User -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $currentUserId --role "Cognitive Services OpenAI User" --scope $AIScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Cognitive Services OpenAI User" }
+else { $rbacFailed += "Current User -> Cognitive Services OpenAI User" }
+
+Write-Host "[11/11] Current User -> App Insights (Monitoring Metrics Publisher)..." -ForegroundColor Yellow
+$result = az role assignment create --assignee $currentUserId --role "Monitoring Metrics Publisher" --scope $AppInsightsScope --output none 2>&1
+if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Monitoring Metrics Publisher" }
+else { $rbacFailed += "Current User -> Monitoring Metrics Publisher" }
+
 Write-Host "`n=== RBAC Summary ===" -ForegroundColor Green
-Write-Host "  Assigned: $($rbacAssigned.Count)/4"
+Write-Host "  Assigned: $($rbacAssigned.Count)/11"
 if ($rbacFailed.Count -gt 0) {
     Write-Host "  Failed: $($rbacFailed -join ', ')" -ForegroundColor Red
+}
+
+# Enable RBAC authentication on Search Service
+Write-Host "`nEnabling RBAC auth on Search Service..." -ForegroundColor Yellow
+az search service update --name $SearchService --resource-group $ResourceGroup --auth-options aadOrApiKey --aad-auth-failure-mode http401WithBearerChallenge --output none 2>&1
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  Search RBAC auth enabled" -ForegroundColor Green
+} else {
+    Write-Host "  WARNING: Could not enable Search RBAC auth" -ForegroundColor Yellow
 }
 
 # ============================================
