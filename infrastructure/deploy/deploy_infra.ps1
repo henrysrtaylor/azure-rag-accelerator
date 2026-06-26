@@ -393,6 +393,7 @@ BLOB_CONTAINER_NAME_DOCUMENTS='documents'
 LOGGING_CONNECTION_STRING='$AppInsightsConnStr'
 
 # Azure Function for DLS (indexer WebApiSkill)
+FUNCTION_APP_NAME='$FunctionApp'
 AZURE_FUNCTION_SECURITY_GROUPS_URL='https://$FunctionApp.azurewebsites.net/api/get_security_groups'
 AZURE_FUNCTION_AUTH_RESOURCE_ID='api://$FunctionApp'
 
