@@ -57,8 +57,7 @@ log_tag = "setup_indexer"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 container = SearchIndexerDataContainer(
-    name=os.getenv("BLOB_CONTAINER_NAME_DOCUMENTS"),
-    query=os.getenv("BLOB_CONTAINER_SUB_FOLDER") + '/'
+    name=os.getenv("BLOB_CONTAINER_NAME_DOCUMENTS")
 )
 data_source_connection = SearchIndexerDataSourceConnection(
     name=data_source_name,
