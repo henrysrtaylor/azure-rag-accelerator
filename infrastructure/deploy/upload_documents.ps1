@@ -132,7 +132,4 @@ Write-Host ""
 Write-Host "Uploaded $FileCount file(s) to:" -ForegroundColor Green
 Write-Host "  https://$StorageAccount.blob.core.windows.net/$ContainerName" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Run the indexer to process new documents"
-Write-Host "  2. Or wait for scheduled indexer run"
-Write-Host ""
+

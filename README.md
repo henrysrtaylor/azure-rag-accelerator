@@ -18,8 +18,6 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
-
-## 📈 Future Roadmap
 - Infrastructure: Azure CLI deployment scripts
 - Data: Load documents into the local directory and send them to Data Lake
 

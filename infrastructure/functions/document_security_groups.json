@@ -1,4 +1,4 @@
 {
-    "document-a.pdf": [],
-    "document-b.pdf": []
+    "Azure_Developer_Guide_eBook.pdf": ["example-group-1", "example-group-2"],
+    "document-a.pdf": []
 }
