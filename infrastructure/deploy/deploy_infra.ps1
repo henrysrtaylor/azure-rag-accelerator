@@ -278,8 +278,29 @@ if ($AppClientId) {
         Write-Host "  Auth configured successfully" -ForegroundColor Green
         Write-Host "  Identity Provider: Microsoft (Entra ID)" -ForegroundColor Green
         Write-Host "  Client ID: $AppClientId" -ForegroundColor Green
-        if ($SearchAppId) {
-            Write-Host "  Allowed client apps: $SearchAppId (Search MI)" -ForegroundColor Green
+        
+        # Add allowedApplications via REST (CLI doesn't support this)
+        if ($SearchAppId -and $SearchPrincipalId) {
+            Write-Host "  Adding Search MI to allowed applications..." -ForegroundColor Yellow
+            
+            # Write JSON to temp file (az rest handles @file syntax better than inline JSON)
+            $authJson = @"
+{"properties":{"platform":{"enabled":true,"runtimeVersion":"~1"},"globalValidation":{"requireAuthentication":true,"unauthenticatedClientAction":"Return401"},"identityProviders":{"azureActiveDirectory":{"enabled":true,"registration":{"clientId":"$AppClientId","openIdIssuer":"https://sts.windows.net/$TenantId/v2.0"},"validation":{"allowedAudiences":["api://$FunctionApp"],"defaultAuthorizationPolicy":{"allowedApplications":["$SearchAppId"],"allowedPrincipals":{"identities":["$SearchPrincipalId"]}}}}}}}
+"@
+            $authFile = Join-Path $env:TEMP "func-auth-$FunctionApp.json"
+            $authJson | Out-File -FilePath $authFile -Encoding ascii -NoNewline
+            
+            $restResult = az rest --method PUT `
+                --uri "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Web/sites/$FunctionApp/config/authsettingsV2?api-version=2022-03-01" `
+                --body "@$authFile" 2>&1
+            
+            Remove-Item $authFile -ErrorAction SilentlyContinue
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  Allowed client apps: $SearchAppId (Search MI)" -ForegroundColor Green
+            } else {
+                Write-Host "  WARNING: Could not set allowedApplications" -ForegroundColor Yellow
+            }
         }
     } else {
         Write-Host "  WARNING: Auth configuration may have failed" -ForegroundColor Yellow
@@ -475,13 +496,6 @@ Models Deployed:    $($modelsDeployed.Count)/$total
 
 === Generated Files ===
 .env - Ready to use
-
-=== Next Steps ===
-1. Grant admin consent for User Auth App:
-   Azure Portal -> App registrations -> $UserAuthAppName -> API permissions -> Grant admin consent
-2. Upload documents to:       $StorageAccount/documents
-3. Deploy Function App:       func azure functionapp publish $FunctionApp
-4. Run indexer setup:         python infrastructure/ai_search/indexer.py
 
 "@ -ForegroundColor Cyan
 
