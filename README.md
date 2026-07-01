@@ -18,9 +18,7 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
 - Logging: Azure Application Insights integration
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
-
-## 📈 Future Roadmap
-- Infrastructure: Terraform modules for full deployment
+- Infrastructure: Azure CLI deployment scripts
 - Data: Load documents into the local directory and send them to Data Lake
 
 ## 📂 Project Structure
@@ -48,7 +46,8 @@ azure-rag-accelerator/
 ├── data/                      # Source documents for indexing and evaluation
 ├── infrastructure/            # Deployment resources
 │   ├── ai_search/             # Index & indexer setup
-│   └── functions/             # Azure Function for DLS
+│   ├── functions/             # Azure Function for DLS
+│   └── deploy/                # Azure CLI deployment scripts
 ├── docs/                      # Documentation
 ├── .env                       # Environment configuration
 ├── requirements.txt           # Dependencies
@@ -73,7 +72,6 @@ Tunable parameters:
 | `PARAMETER_NUMBER_DOC_RETRIEVE` | `5` | Number of documents to retrieve |
 | `PARAMETER_K_NEAREST_NEIGHBORS` | `3` | k for vector search |
 | `PARAMETER_SUGGESTED_QUESTIONS` | `3` | Number of follow-up suggestions |
-| `PARAMETER_ALLOWED_TOPICS` | `any topic` | Topics for on-topic guardrail |
 | `PARAMETER_CHUNK_SIZE` | `1000` | Document chunk size (indexing) |
 | `PARAMETER_CHUNK_OVERLAP` | `100` | Chunk overlap (indexing) |
 

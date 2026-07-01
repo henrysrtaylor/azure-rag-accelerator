@@ -254,7 +254,7 @@ skill_security_groups = WebApiSkill(
 
 The Function App reads document-to-groups mapping from a JSON file (simple setup). For production, consider using Cosmos DB for scalability.
 
-**Location**: `scripts/infrastructure/azure_functions/document_security_groups.json`
+**Location**: `infrastructure/functions/document_security_groups.json`
 
 ```json
 {

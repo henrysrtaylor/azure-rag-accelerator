@@ -9,9 +9,6 @@ Usage:
     # Simple load
     prompt = markdown_loader("prompt_main_agent")
     
-    # With variable substitution
-    prompt = markdown_loader("prompt_main_agent", allowed_topics="Topic A, Topic B")
-    
     # Load response template
     response = markdown_loader("responses/response_jailbreak")
 """

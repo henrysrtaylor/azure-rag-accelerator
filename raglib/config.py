@@ -40,7 +40,7 @@ def get_project_names() -> tuple[str, str]:
         Tuple of (index_name, semantic_config_name).
     """
     load_env_vars()
-    project_prefix = f'{os.getenv("AZURE_SEARCH_PROJECT_PREFIX")}-{os.getenv("BLOB_CONTAINER_SUB_FOLDER")}'
+    project_prefix = os.getenv("AZURE_SEARCH_PROJECT_PREFIX")
     index_name = f"{project_prefix}-index"
     semantic_config_name = f"{project_prefix}-default-semantic-config"
     return index_name, semantic_config_name
