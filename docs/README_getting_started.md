@@ -4,9 +4,10 @@ The following instructions are for Windows (PowerShell). For macOS/Linux, use ba
 
 ## Prerequisites
 
-1. Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-2. Install [Python 3.10+](https://www.python.org/downloads/)
-3. Create a virtual environment:
+1. **Azure Permissions**: Owner or Contributor role on the target subscription (required to create resources and assign RBAC roles)
+2. Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+3. Install [Python 3.10+](https://www.python.org/downloads/)
+4. Create a virtual environment:
 
 ```powershell
 python -m venv .venv
@@ -14,7 +15,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-4. Login to Azure:
+5. Login to Azure:
 
 ```powershell
 az login
@@ -39,6 +40,8 @@ The script will prompt for:
 - `Subscription ID` - Your Azure subscription (script lists available subscriptions)
 - `Prefix` - Name prefix for all resources (lowercase, no special characters)
 - `Location` - Azure region (e.g., "westeurope", "eastus", "uksouth")
+
+> **Tip:** To change the deployed models, edit [infrastructure/deploy/config/models.json](../infrastructure/deploy/config/models.json) before running the script.
 
 ### Step 2: Upload Documents
 

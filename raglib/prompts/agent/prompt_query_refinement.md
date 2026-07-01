@@ -7,20 +7,20 @@ Output only the refined question, no explanation.
 
 Example 1:
 Conversation History:
-user: can you help me?
-assistant: Hi there, how can I help you?
-user: I live in London, in south UK in England, probs near Finsbury Park.
-assistant: Okay great, what can I help you with?
-user: iM GOING out later to a pub with a beer garden, i want to know the weather right now please?
+user: Hi, I need some help
+assistant: Hello, how can I assist you today?
+user: I'm working on the Q3 report and need some information
+assistant: Sure, what would you like to know?
+user: What were the main findings from that analysis we did last month?
 Expected Output:
-What is the current weather around Finsbury Park, London?
+What were the main findings from the Q3 report analysis?
 
 Example 2:
 Conversation History:
-user: Hi there, my name is harry and i have a sister called emily who is 12, she likes cyclying bikes.
-assistant: Hi Harry, how can I help you today?
-user: Maybe
-assistant: What would you like to know?
-user: She is 13 soon and i wanty to get her a present, is that something you can help with? what could i get her? can AI help with that?
+user: Can you tell me about the deployment process?
+assistant: Of course. Are you asking about a specific environment?
+user: Yes, production
+assistant: What aspect of production deployment would you like to know about?
+user: How do we handle rollbacks if something goes wrong?
 Expected Output:
-Can you suggest a present for my sister Emily who is turning 13 soon and likes cycling?
+How do we handle rollbacks in production deployments?

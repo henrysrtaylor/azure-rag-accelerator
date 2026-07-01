@@ -72,7 +72,6 @@ Tunable parameters:
 | `PARAMETER_NUMBER_DOC_RETRIEVE` | `5` | Number of documents to retrieve |
 | `PARAMETER_K_NEAREST_NEIGHBORS` | `3` | k for vector search |
 | `PARAMETER_SUGGESTED_QUESTIONS` | `3` | Number of follow-up suggestions |
-| `PARAMETER_ALLOWED_TOPICS` | `any topic` | Topics for on-topic guardrail |
 | `PARAMETER_CHUNK_SIZE` | `1000` | Document chunk size (indexing) |
 | `PARAMETER_CHUNK_OVERLAP` | `100` | Chunk overlap (indexing) |
 
