@@ -27,7 +27,7 @@ def markdown_loader(name: str, **kwargs: str) -> str:
         FileNotFoundError: If template file doesn't exist.
 
     Example:
-        >>> markdown_loader("prompt_main_agent", allowed_topics="Topic A")
+        >>> markdown_loader("prompt_main_agent")
         >>> markdown_loader("prompt_eval_groundedness")  # loads from evaluation/
     """
     folder = "evaluation" if "eval" in name.lower() else "agent"

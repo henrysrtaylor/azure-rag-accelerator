@@ -57,8 +57,7 @@ log_tag = "setup_indexer"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 container = SearchIndexerDataContainer(
-    name=os.getenv("BLOB_CONTAINER_NAME_DOCUMENTS"),
-    query=os.getenv("BLOB_CONTAINER_SUB_FOLDER") + '/'
+    name=os.getenv("BLOB_CONTAINER_NAME_DOCUMENTS")
 )
 data_source_connection = SearchIndexerDataSourceConnection(
     name=data_source_name,
@@ -170,15 +169,7 @@ skill_shaper = ShaperSkill(
     context="/document/normalized_images/*",
     inputs=[
         InputFieldMappingEntry(name="normalized_images", source="/document/normalized_images/*"),
-        InputFieldMappingEntry(name="imagePath", source="='{{imageProjectionContainer}}/'+$(/document/normalized_images/*/imagePath)"),
-        InputFieldMappingEntry(
-            name="location_metadata",
-            source_context="/document/normalized_images/*",
-            inputs=[
-                InputFieldMappingEntry(name="page_number", source="/document/normalized_images/*/pageNumber"),
-                InputFieldMappingEntry(name="bounding_polygons", source="/document/normalized_images/*/boundingPolygon")
-            ]
-        )
+        InputFieldMappingEntry(name="imagePath", source="='{{imageProjectionContainer}}/'+$(/document/normalized_images/*/imagePath)")
     ],
     outputs=[
         OutputFieldMappingEntry(name="output", target_name="new_normalized_images")
@@ -236,7 +227,6 @@ index_projections = SearchIndexerIndexProjection(
                 InputFieldMappingEntry(name="document_title", source="/document/document_title"),
                 InputFieldMappingEntry(name="document_date", source="/document/metadata_creation_date"),
                 InputFieldMappingEntry(name="content_path", source="/document/normalized_images/*/new_normalized_images/imagePath"),
-                InputFieldMappingEntry(name="location_metadata", source="/document/normalized_images/*/new_normalized_images/location_metadata"),
                 InputFieldMappingEntry(name="security_groups", source="/document/security_groups_array"),
             ]
         )

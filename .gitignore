@@ -1,12 +1,54 @@
+# Environment files (contain secrets and subscription IDs)
 .env
+.env.local
+.env.*.local
+!.env.example
+
+# Python
 *.pyc
 .venv/
+venv/
+env/
 __pycache__/
 .ipynb_checkpoints/
 *.egg
 *.egg-info/
 *.python_packages
+.mypy_cache/
+.pytest_cache/
 
-# Evaluation results
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and debug output
+*.log
+logs/
+debug-logs/
+
+# Evaluation results (may contain proprietary data)
 evaluation/results/*
 !evaluation/results/.gitkeep
+
+# Secrets and credentials (catch-all patterns)
+**/secrets/
+**/credentials/
+*.pem
+*.key
+*.pfx
+*.p12
+**/certs/
+**/.azure/
+
+# Temporary and cache files
+*.tmp
+*.temp
+.cache/

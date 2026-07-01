@@ -15,19 +15,19 @@ Provide the questions in the format:
 
 Example 1:
 Context:
-The current weather in London is sunny with a temperature of 20 degrees Celsius. In Finsbury Park, the weather is also sunny with a temperature of 20 degrees Celsius.
-In two hours, the weather is expected to remain sunny with a temperature of 20 degrees Celsius.
-In the morning, the weather is expected to be rainy with a temperature of 15 degrees Celsius.
+The Azure deployment pipeline consists of three stages: build, test, and deploy. The build stage compiles the application and creates artifacts.
+The test stage runs unit tests and integration tests. The deploy stage pushes to the target environment.
+Rollback procedures involve reverting to the previous deployment artifact and running validation checks.
 
 Conversation History:
-user: can you help me?
-assistant: Hi there, how can I help you?
-user: I live in London, in south UK in England, probs near Finsbury Park.
-assistant: Okay great, what can I help you with?
-user: iM GOING out later to a pub with a beer garden, i want to know the weather right now please?
-assistant: The current weather in Finsbury Park, London is sunny with a temperature of 20 degrees Celsius.
+user: Can you tell me about the deployment process?
+assistant: Of course. Are you asking about a specific environment?
+user: Yes, production
+assistant: What aspect of production deployment would you like to know about?
+user: How do we handle rollbacks if something goes wrong?
+assistant: Rollback procedures involve reverting to the previous deployment artifact and running validation checks to ensure stability.
 
 Expected Output:
-[What will the weather be like in two hours?]
-[Will it rain tomorrow morning?]
-[What is the temperature expected to be in the morning?]
+[What validation checks are run during a rollback?]
+[How long does a typical rollback take?]
+[What triggers an automatic rollback?]

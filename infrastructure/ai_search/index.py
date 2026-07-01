@@ -11,7 +11,6 @@ import time
 from azure.search.documents.indexes.models import (
     AzureOpenAIVectorizer,
     AzureOpenAIVectorizerParameters,
-    ComplexField,
     HnswAlgorithmConfiguration,
     SearchField,
     SearchFieldDataType,

@@ -1,137 +1,147 @@
 # Getting Started
 
-This guide covers infrastructure setup and application deployment.
+The following instructions are for Windows (PowerShell). For macOS/Linux, use bash equivalents or [install PowerShell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell).
 
----
+## Prerequisites
 
-## 1. Infrastructure Setup
+1. **Azure Permissions**: Owner or Contributor role on the target subscription (required to create resources and assign RBAC roles)
+2. Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+3. Install [Python 3.10+](https://www.python.org/downloads/)
+4. Create a virtual environment:
 
-Infrastructure setup will deploy the following Azure resources in a fresh resource group with Managed Identity enabled between them:
-
-- Azure AI Search
-- Azure AI Foundry (LLM, Embeddings, Content Safety)
-- Azure Blob Storage
-- Azure Function App (for DLS)
-- Application Insights
-
-See [README_permissions.md](README_permissions.md) for required permissions and access configuration.
-
-**Options:**
-- **Terraform (recommended):** Run the Terraform scripts in `infrastructure/terraform/` - *coming soon*
-- **Manual:** If comfortable, provision resources yourself following the permissions guide
-
----
-
-## 2. Application Setup
-
-### 2.1 Clone the Repository
-
-```bash
-git clone "https://github.com/henrysrtaylor/azure-rag-accelerator.git"
-cd azure-rag-accelerator
-```
-
-### 2.2 Set Up Virtual Environment
-
-Windows:
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\activate
-```
-
-macOS/Linux:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2.3 Install Dependencies
-
-```bash
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### 2.4 Configure Environment
+5. Login to Azure:
 
-Copy `.env.example` to `.env` and fill in your Azure resource details:
-
-```env
-AZURE_SEARCH_SERVICE_ENDPOINT=https://<search-service>.search.windows.net
-AZURE_FOUNDRY_ENDPOINT=https://<foundry>.services.ai.azure.com
-```
-
-See the main [README.md](../README.md#configuration-options) for all available configuration options.
-
----
-
-## 3. Run the Application
-
-### Option A: Streamlit + Backend (recommended)
-
-Run services separately for development with hot-reload.
-
-**Prerequisite:** You must be logged into Azure CLI for `DefaultAzureCredential` to work:
-
-```bash
+```powershell
 az login
 ```
 
-> **Note:** Your Azure account needs appropriate permissions to access Search, AI Foundry, and other resources. See [README_permissions.md](README_permissions.md) for required access. Terraform will configure these automatically when infrastructure is deployed.
-
-Then start the services:
-
-```bash
-# Terminal 1 - Start backend API
-uvicorn app.backend_server:app --reload
-
-# Terminal 2 - Start Streamlit frontend
-streamlit run app/streamlit_app.py
-```
-
-Open http://localhost:8501 in your browser.
-
-### Option B: CLI Client
-
-Terminal-based interface (useful for testing/automation):
-
-```bash
-# Start backend API first
-uvicorn app.backend_server:app --reload
-
-# In another terminal
-python -m app.cli_app
-```
+> **Note:** All steps below can be skipped, run manually, or edited to suit your preferences. The scripts are provided as a starting point - feel free to modify resource names, locations, RBAC assignments, or deploy individual components separately. See the other documentation files in `docs/` for guidance on customization.
 
 ---
 
-## 4. Docker (Production Deployment - Optional)
+## Deployment Steps
 
-We have provided a [dockerfile](../app/dockerfile) to use as reference if you wish to build a container.
+### Step 1: Deploy Infrastructure
 
-**Build:**
+Creates all Azure resources (Search, AI Services, Storage, Function App), assigns RBAC permissions, configures authentication, deploys models, and outputs `.env` file.
+
+```powershell
+cd infrastructure/deploy
+.\deploy_infra.ps1
+```
+
+The script will prompt for:
+- `Subscription ID` - Your Azure subscription (script lists available subscriptions)
+- `Prefix` - Name prefix for all resources (lowercase, no special characters)
+- `Location` - Azure region (e.g., "westeurope", "eastus", "uksouth")
+
+> **Tip:** To change the deployed models, edit [infrastructure/deploy/config/models.json](../infrastructure/deploy/config/models.json) before running the script.
+
+### Step 2: Upload Documents
+
+Uploads files from `data/documents/` to blob storage. Supports: pdf, doc, docx, txt, md, rtf, csv, json, xml, html. Update `data/documents/` with your desired documents first.
+
+```powershell
+.\upload_documents.ps1
+```
+
+### Step 3: Deploy Function App Code
+
+Deploys the security groups function to Azure Functions.
+
+```powershell
+cd ../functions
+.\deploy.ps1
+```
+
+### Step 4: Create Search Index
+
+Creates the search index with vector search and semantic ranking configuration.
+
+```powershell
+cd ../ai_search
+python index.py
+```
+
+### Step 5: Create Indexer
+
+Creates the skillset (chunking, embeddings, security groups), datasource, and indexer. Starts processing documents.
+
+```powershell
+python indexer.py
+```
+
+### Step 6: Run the Application
+
+```powershell
+cd ../../
+pip install -r requirements.txt
+uvicorn app.backend_server:app --reload
+# In another terminal:
+streamlit run app/streamlit_app.py
+```
+
+Open http://localhost:8501
+
+---
+
+## Quick Reference
+
+| Step | Script | Location |
+|------|--------|----------|
+| 1 | `deploy_infra.ps1` | `infrastructure/deploy/` |
+| 2 | `upload_documents.ps1` | `infrastructure/deploy/` |
+| 3 | `deploy.ps1` | `infrastructure/functions/` |
+| 4 | `index.py` | `infrastructure/ai_search/` |
+| 5 | `indexer.py` | `infrastructure/ai_search/` |
+
+---
+
+## Resources Created
+
+`deploy_infra.ps1` creates the following Azure resources:
+
+| Resource | Naming | Purpose |
+|----------|--------|---------|
+| Resource Group | `rg-{prefix}` | Container for all resources |
+| AI Services | `ai-{prefix}` | GPT, Embeddings, Content Safety |
+| AI Search | `srch-{prefix}` | Vector search with semantic ranking |
+| Storage Account | `st{prefix}` | Document storage |
+| Function App | `func-{prefix}` | Document-level security groups lookup |
+| App Insights | `appi-{prefix}` | Logging and monitoring |
+
+All resources are configured with Managed Identity and RBAC permissions. See [README_permissions.md](README_permissions.md) for details.
+
+---
+
+## Configuration
+
+The deployment script outputs a `.env` file with all required configuration. Key settings:
+
+```env
+AZURE_FOUNDRY_ENDPOINT=https://ai-{prefix}.services.ai.azure.com
+AZURE_SEARCH_SERVICE_ENDPOINT=https://srch-{prefix}.search.windows.net
+BLOB_ACCOUNT_URL=https://st{prefix}.blob.core.windows.net
+```
+
+See [.env.example](../.env.example) for all available options.
+
+---
+
+## Docker (Optional)
+> NOTE: Needs additional configuration on the permissions side when hosting on Azure.
+
+Build and run as a container:
 
 ```bash
 docker build -f app/dockerfile -t rag-accelerator .
 docker run -p 8501:8501 -p 8000:8000 rag-accelerator
 ```
 
-**Authentication options:**
-
-| Deployment | Auth Method |
-|------------|-------------|
-| Local Docker | Service Principal credentials in `.env` (see below) |
-| Azure Container Apps / AKS | Enable Managed Identity - Azure handles auth automatically |
-
-**For local Docker testing**, create a Service Principal with the same permissions as described in [README_permissions.md](README_permissions.md), and add to `.env`:
-
-```env
-AZURE_CLIENT_ID=<service-principal-app-id>
-AZURE_CLIENT_SECRET=<service-principal-secret>
-AZURE_TENANT_ID=<your-tenant-id>
-```
-
-Then rebuild the image to include the updated `.env`.
-
-**For Azure deployments**, enable Managed Identity on your Container App or AKS cluster and grant it access to your Azure resources - no credentials needed in the image.
-
-> **Note:** The Service Principal or Managed Identity needs appropriate permissions to access Azure resources. See [README_permissions.md](README_permissions.md) for required access. Terraform will configure these automatically if this option is followed.
+For Azure deployments (Container Apps, AKS), enable Managed Identity - no credentials needed.
