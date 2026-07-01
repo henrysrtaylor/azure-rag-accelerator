@@ -12,10 +12,7 @@ from raglib.enhance import generate_suggested_questions, query_refinement
 from raglib.guardrails import check_model_guardrails
 from raglib.prompts.markdown_loader import markdown_loader
 
-prompt_main_agent = markdown_loader(
-    "prompt_main_agent",
-    allowed_topics=os.getenv("PARAMETER_ALLOWED_TOPICS", "Any topic")
-)
+prompt_main_agent = markdown_loader("prompt_main_agent")
 
 
 def base_chat_logic(

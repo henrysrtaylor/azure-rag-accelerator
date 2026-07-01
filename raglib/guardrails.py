@@ -12,10 +12,7 @@ from raglib.azure_ai import send_llm_request
 from raglib.config import get_content_safety_client
 from raglib.prompts.markdown_loader import markdown_loader
 
-prompt_guardrail_ontopic = markdown_loader(
-    "prompt_guardrail_ontopic",
-    allowed_topics=os.getenv("PARAMETER_ALLOWED_TOPICS", "Any topic")
-)
+prompt_guardrail_ontopic = markdown_loader("prompt_guardrail_ontopic")
 response_inappropriate = markdown_loader("responses/response_inappropriate")
 response_jailbreak = markdown_loader("responses/response_jailbreak")
 response_offtopic = markdown_loader("responses/response_offtopic")
