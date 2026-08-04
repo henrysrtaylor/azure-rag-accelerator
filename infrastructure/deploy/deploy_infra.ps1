@@ -450,10 +450,12 @@ AZURE_SEARCH_SERVICE_ENDPOINT='https://$SearchService.search.windows.net'
 AZURE_SEARCH_API_VERSION='2023-11-01'
 AZURE_SEARCH_PROJECT_PREFIX='$Prefix'
 
-BLOB_ACCOUNT_NAME='$StorageAccount'
-BLOB_ACCOUNT_URL='https://$StorageAccount.blob.core.windows.net'
-BLOB_CONNECTION_STRING='ResourceId=/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Storage/storageAccounts/$StorageAccount'
-BLOB_CONTAINER_NAME_DOCUMENTS='documents'
+STORAGE_ACCOUNT_NAME='$StorageAccount'
+STORAGE_DFS_ACCOUNT_URL='https://$StorageAccount.dfs.core.windows.net'
+STORAGE_CONNECTION_STRING='ResourceId=/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Storage/storageAccounts/$StorageAccount'
+DOCUMENTS_FILESYSTEM_NAME='documents'
+EVALUATION_FILESYSTEM_NAME='evaluation'
+EVALUATION_DOCUMENT_NAME='example_golden_dataset.json'
 
 # Application Insights logging
 LOGGING_CONNECTION_STRING='$AppInsightsConnStr'

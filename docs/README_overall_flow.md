@@ -119,14 +119,13 @@ The final response includes:
 Documents must be indexed before they can be searched. The solution uses the Azure AI Search **pull method** (indexer-based):
 
 ```
-Blob Storage → Indexer → Skills Pipeline → Search Index
+ADLS Gen2 → Indexer → Skills Pipeline → Search Index
 ```
 
-1. Indexer monitors Blob Storage for new/updated/deleted documents
+1. Indexer monitors ADLS Gen2 for new and updated documents
 2. Skills extract text, chunk content, generate embeddings
 3. WebApiSkill calls Azure Function for security groups
 4. Chunks with embeddings and security groups stored in index
-5. Soft-deleted blobs are automatically removed from index (via `NativeBlobSoftDeleteDeletionDetectionPolicy`)
 
 ---
 

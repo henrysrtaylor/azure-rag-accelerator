@@ -13,11 +13,9 @@ from azure.search.documents.indexes.models import (
     ChatCompletionSkill,
     DocumentExtractionSkill,
     FieldMapping,
-    FieldMappingFunction,
     IndexingSchedule,
     IndexProjectionMode,
     InputFieldMappingEntry,
-    NativeBlobSoftDeleteDeletionDetectionPolicy,
     OutputFieldMappingEntry,
     SearchIndexer,
     SearchIndexerDataContainer,
@@ -53,18 +51,17 @@ indexer_client = get_search_indexer_client()
 
 log_enabled = True
 print_log_enabled = True
-log_tag = "setup_indexer"
+log_tag = "indexer"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 container = SearchIndexerDataContainer(
-    name=os.getenv("BLOB_CONTAINER_NAME_DOCUMENTS")
+    name=os.getenv("DOCUMENTS_FILESYSTEM_NAME")
 )
 data_source_connection = SearchIndexerDataSourceConnection(
     name=data_source_name,
-    type="azureblob",
-    connection_string=os.getenv("BLOB_CONNECTION_STRING"),
-    container=container,
-    data_deletion_detection_policy=NativeBlobSoftDeleteDeletionDetectionPolicy()
+    type="adlsgen2",
+    connection_string=os.getenv("STORAGE_CONNECTION_STRING"),
+    container=container
 )
 data_source = indexer_client.create_or_update_data_source_connection(data_source_connection)
 

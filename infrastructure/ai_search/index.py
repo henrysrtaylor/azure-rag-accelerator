@@ -33,7 +33,7 @@ index_client = get_search_index_client()
 
 log_enabled = True
 print_log_enabled = True
-log_tag = "setup_index"
+log_tag = "index"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 fields = [
