@@ -54,16 +54,18 @@ azure-rag-accelerator/
 └── pyproject.toml             # Package configuration
 ```
 
-## ⚙️ Configuration Options
+## ⚙️ Client Feature Flags
 
-Feature flags to enable/disable functionality:
+These feature flags are owned by each client and sent with every `/chat` request; they are not backend environment settings.
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `OPTION_QUERY_REFINEMENT` | `true` | Rewrite queries using conversation context |
-| `OPTION_GUARDRAIL_CHECKS` | `true` | Content safety and jailbreak detection |
-| `OPTION_SUGGESTED_QUESTIONS` | `true` | Generate follow-up question suggestions |
-| `OPTION_SECURITY_GROUPS` | `true` | Document-level security filtering |
+| Option | CLI | Streamlit | Description |
+|--------|-----|-----------|-------------|
+| Query refinement | `OPTION_QUERY_REFINEMENT` constant | Setup toggle | Rewrite queries using conversation context |
+| Guardrail checks | `OPTION_GUARDRAIL_CHECKS` constant | Setup toggle | Content safety, jailbreak, and on-topic checks |
+| Suggested questions | `OPTION_SUGGESTED_QUESTIONS` constant | Setup toggle | Generate follow-up question suggestions |
+| Document-level security | `OPTION_SECURITY_GROUPS` constant | Authentication toggle | Apply Entra ID group filtering |
+
+The API returns one consistent response shape for normal answers, empty input, exit commands, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients only display the response and follow its `save_chat_history` and `end_conversation` values.
 
 Tunable parameters:
 
@@ -119,7 +121,7 @@ DLS restricts search results based on user's Entra ID security groups:
 3. `build_security_filter()` creates OData filter from user's groups
 4. Azure AI Search only returns documents matching user's groups
 
-> **Note:** DLS can be disabled via the `OPTION_SECURITY_GROUPS` environment variable or toggled off in the Streamlit UI for full file access.
+> **Note:** DLS is selected in the client: set the CLI `OPTION_SECURITY_GROUPS` constant to `False`, or turn off Streamlit's **Authentication (DLS)** toggle, for full file access.
 
 See [docs/README_permissions.md](docs/README_permissions.md) for setup details.
 

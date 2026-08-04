@@ -53,6 +53,8 @@ Uploads files from `data/documents/` to the ADLS Gen2 `documents` filesystem. Su
 
 ### Step 3: Deploy Function App Code
 
+> **DLS setup:** If you will use document-level security, create or identify the required Microsoft Entra security groups, then replace the placeholder values in [document_security_groups.json](../infrastructure/functions/document_security_groups.json) with their group **object IDs** before deploying the function. Users must belong to a matching group to retrieve the document. See [README_permissions.md](README_permissions.md) for Entra and token configuration.
+
 Deploys the security groups function to Azure Functions.
 
 ```powershell

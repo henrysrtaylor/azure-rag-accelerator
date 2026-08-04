@@ -112,6 +112,9 @@ The final response includes:
 - **references**: List of cited documents with IDs
 - **suggested_questions**: Follow-up questions (if enabled)
 
+### Step 12: Unexpected Failures
+The FastAPI `/chat` endpoint is the error boundary. It prints the exception traceback to the server console and returns the standard failure response so clients receive the same response shape as other chat outcomes.
+
 ---
 
 ## Indexing Flow
