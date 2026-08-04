@@ -69,7 +69,9 @@ def _get_control_response(latest_user_query: str, enable_guardrail_checks: bool 
 
 def base_chat_logic(
     chat_history: list[dict[str, str]],
-    security_filter: Optional[str] = None
+    security_filter: Optional[str] = None,
+    enable_query_refinement: bool = True,
+    enable_suggested_questions: bool = True,
 ) -> dict:
     """
     Core RAG pipeline: retrieve documents, generate response, apply guardrails.
@@ -77,19 +79,18 @@ def base_chat_logic(
     Args:
         chat_history: List of message dicts with 'role' and 'content' keys.
         security_filter: OData filter for document-level security. [] means no groups, which will deny all access in DLS filter logic. None means bypass DLS filter (full access).
+        enable_query_refinement: Whether to refine the latest user query before retrieval.
+        enable_suggested_questions: Whether to generate follow-up questions.
 
     Returns:
         Dict with 'assistant_message', 'suggested_questions', 'references',
         and 'document_context'.
     """
-    option_query_refinement = os.getenv("OPTION_QUERY_REFINEMENT", "true").lower() in ("true", "1", "yes")
-    option_suggested_questions = os.getenv("OPTION_SUGGESTED_QUESTIONS", "true").lower() in ("true", "1", "yes")
-
     # Internal guardrail flag for model output validation
     model_guardrail_triggered = False
 
     # Query refinement
-    if option_query_refinement:
+    if enable_query_refinement:
         user_query = query_refinement(chat_history)
     else:
         user_query = next(
@@ -123,7 +124,7 @@ def base_chat_logic(
         text_citation_map = []
         documents_joined = ""
     else:
-        if option_suggested_questions:
+        if enable_suggested_questions:
             generated_id_questions = generate_suggested_questions(chat_history, documents_joined)
         else:
             generated_id_questions = []
@@ -160,7 +161,12 @@ def evaluation_chat_logic(
     Returns:
         Dict with 'assistant_message', 'references', and 'document_context'.
     """
-    chat_response = base_chat_logic(chat_history, security_filter=security_filter)
+    chat_response = base_chat_logic(
+        chat_history,
+        security_filter=security_filter,
+        enable_query_refinement=True,
+        enable_suggested_questions=False,
+    )
     chat_response.pop("suggested_questions")
     chat_response.pop("guardrail_triggered")
     chat_response.pop("guardrail_type")
@@ -171,6 +177,8 @@ def inference_chat_logic(
     chat_history: list[dict[str, str]],
     security_filter: Optional[str] = None,
     enable_guardrail_checks: bool = True,
+    enable_query_refinement: bool = True,
+    enable_suggested_questions: bool = True,
 ) -> dict:
     """
     RAG pipeline for inference mode (includes suggested_questions, excludes document_context).
@@ -179,6 +187,8 @@ def inference_chat_logic(
         chat_history: List of message dicts with 'role' and 'content' keys.
         security_filter: OData filter for document-level security.
         enable_guardrail_checks: Whether to validate the latest user message.
+        enable_query_refinement: Whether to refine the latest user query before retrieval.
+        enable_suggested_questions: Whether to generate follow-up questions.
 
     Returns:
         Dict with the assistant response, guardrail state, and history-save decision.
@@ -195,7 +205,12 @@ def inference_chat_logic(
     if control_response:
         return control_response
 
-    chat_response = base_chat_logic(chat_history, security_filter=security_filter)
+    chat_response = base_chat_logic(
+        chat_history,
+        security_filter=security_filter,
+        enable_query_refinement=enable_query_refinement,
+        enable_suggested_questions=enable_suggested_questions,
+    )
     chat_response.pop("document_context")
     chat_response["end_conversation"] = False
     return chat_response

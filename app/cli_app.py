@@ -14,6 +14,11 @@ load_env_vars()
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
+OPTION_QUERY_REFINEMENT = True
+OPTION_GUARDRAIL_CHECKS = True
+OPTION_SUGGESTED_QUESTIONS = True
+OPTION_SECURITY_GROUPS = True
+
 
 def authenticate_user() -> list[str]:
     """
@@ -68,11 +73,8 @@ def authenticate_user() -> list[str]:
 
 def interactive_chat() -> None:
     """Run interactive chat loop in terminal."""
-    option_guardrail_checks = os.getenv("OPTION_GUARDRAIL_CHECKS", "true").lower() in ("true", "1", "yes")
-    option_security_groups = os.getenv("OPTION_SECURITY_GROUPS", "true").lower() in ("true", "1", "yes")
-
     # Handle security groups based on option
-    if option_security_groups:
+    if OPTION_SECURITY_GROUPS:
         security_groups = authenticate_user()
     else: # [] means no groups, which will deny all access in DLS filter logic. None means bypass DLS filter (full access).
         security_groups = None
@@ -96,7 +98,9 @@ def interactive_chat() -> None:
             response = requests.post(f"{API_BASE_URL}/chat", json={
                 "chat_history": chat_history + [{"role": "user", "content": user_query}],
                 "security_groups": security_groups,
-                "enable_guardrail_checks": option_guardrail_checks,
+                "enable_query_refinement": OPTION_QUERY_REFINEMENT,
+                "enable_guardrail_checks": OPTION_GUARDRAIL_CHECKS,
+                "enable_suggested_questions": OPTION_SUGGESTED_QUESTIONS,
             })
             response.raise_for_status()
             chat_response = response.json()
