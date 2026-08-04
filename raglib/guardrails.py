@@ -13,9 +13,6 @@ from raglib.config import get_content_safety_client
 from raglib.prompts.markdown_loader import markdown_loader
 
 prompt_guardrail_ontopic = markdown_loader("prompt_guardrail_ontopic")
-response_inappropriate = markdown_loader("responses/response_inappropriate")
-response_jailbreak = markdown_loader("responses/response_jailbreak")
-response_offtopic = markdown_loader("responses/response_offtopic")
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
 REPLACE_WORDS = [("     ", ""), ("    ", ""), ("   ", ""), ("  ", ""), (" ", ""), ("@", "a"), ("3", "e"), ("!", "i"), ("1", "l"), ("$", "s")]
@@ -157,32 +154,26 @@ def guardrails(query: str, model: bool = False) -> dict[str, bool | str | None]:
         model: When True, run model-output checks only.
 
     Returns:
-        Dict with 'guardrail_triggered' (bool), 'guardrail_type' (str|None),
-        and 'guardrail_answer' (str|None).
+        Dict with 'guardrail_triggered' (bool) and 'guardrail_type' (str|None).
     """
     guardrail_results = _run_guardrails(query, check_prompt_and_topic=not model)
     
     if guardrail_results['content_moderation_detected']:
-        guardrail_answer = response_inappropriate
         guardrail_type = "inappropriate_text"
         
     elif not model and guardrail_results['prompt_injection_detected']:
-        guardrail_answer = response_jailbreak
         guardrail_type = "jailbreak_attempt"
         
     elif not model and guardrail_results['off_topic_detected']:
-        guardrail_answer = response_offtopic
         guardrail_type = "off_topic_query"
         
     else:
         return {
             "guardrail_triggered": False,
             "guardrail_type": None,
-            "guardrail_answer": None,
         }
         
     return {
         "guardrail_triggered": True,
         "guardrail_type": guardrail_type,
-        "guardrail_answer": guardrail_answer,
     }

@@ -13,7 +13,44 @@ from raglib.guardrails import guardrails
 from raglib.prompts.markdown_loader import markdown_loader
 
 prompt_main_agent = markdown_loader("prompt_main_agent")
+MODEL_CONFIG = {
+    "large_deployment": os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"),
+    "large_version": os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL_VERSION"),
+    "small_deployment": os.getenv("AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL"),
+    "small_version": os.getenv("AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL_VERSION"),
+    "embedding_deployment": os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL"),
+    "embedding_version": os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL_VERSION"),
+}
+CHAT_RESPONSES = {
+    "empty_query": markdown_loader("responses/response_empty_query"),
+    "exit": markdown_loader("responses/response_exit"),
+    "failure": markdown_loader("responses/response_failure"),
+    "inappropriate_text": markdown_loader("responses/response_inappropriate"),
+    "jailbreak_attempt": markdown_loader("responses/response_jailbreak"),
+    "off_topic_query": markdown_loader("responses/response_offtopic"),
+}
 _EXIT_PHRASES = {"exit", "quit", "stop", "bye", "goodbye"}
+
+
+def _create_chat_response(
+    content: str,
+    *,
+    guardrail_type: Optional[str] = None,
+    end_conversation: bool = False,
+) -> dict:
+    """Create a non-RAG chat response with the standard API response shape."""
+    return {
+        "assistant_message": {
+            "role": "assistant",
+            "content": content,
+        },
+        "suggested_questions": [],
+        "references": [],
+        "guardrail_triggered": guardrail_type is not None,
+        "guardrail_type": guardrail_type,
+        "save_chat_history": False,
+        "end_conversation": end_conversation,
+    }
 
 
 def _get_control_response(latest_user_query: str, enable_guardrail_checks: bool = True) -> Optional[dict]:
@@ -21,48 +58,19 @@ def _get_control_response(latest_user_query: str, enable_guardrail_checks: bool 
     latest_user_query = latest_user_query.strip()
 
     if not latest_user_query:
-        return {
-            "assistant_message": {
-                "role": "assistant", 
-                "content": "Please enter a message."
-                },
-            "suggested_questions": [],
-            "references": [],
-            "guardrail_triggered": False,
-            "guardrail_type": None,
-            "save_chat_history": False,
-            "end_conversation": False,
-        }
+        return _create_chat_response(CHAT_RESPONSES["empty_query"])
 
     if latest_user_query.lower() in _EXIT_PHRASES:
-        return {
-            "assistant_message": {
-                "role": "assistant",
-                "content": "Goodbye! Have a great day!"
-                },
-            "suggested_questions": [],
-            "references": [],
-            "guardrail_triggered": False,
-            "guardrail_type": None,
-            "save_chat_history": False,
-            "end_conversation": True,
-        }
+        return _create_chat_response(CHAT_RESPONSES["exit"], end_conversation=True)
 
     if enable_guardrail_checks:
         user_guardrail_response = guardrails(latest_user_query, model=False)
         if user_guardrail_response["guardrail_triggered"]:
-            return {
-                "assistant_message": {
-                    "role": "assistant",
-                    "content": user_guardrail_response["guardrail_answer"],
-                },
-                "suggested_questions": [],
-                "references": [],
-                "guardrail_triggered": True,
-                "guardrail_type": user_guardrail_response["guardrail_type"],
-                "save_chat_history": False,
-                "end_conversation": False,
-            }
+            guardrail_type = user_guardrail_response["guardrail_type"]
+            return _create_chat_response(
+                CHAT_RESPONSES[guardrail_type],
+                guardrail_type=guardrail_type,
+            )
 
     return None
 
@@ -91,7 +99,7 @@ def base_chat_logic(
 
     # Query refinement
     if enable_query_refinement:
-        user_query = query_refinement(chat_history)
+        user_query = query_refinement(chat_history, MODEL_CONFIG)
     else:
         user_query = next(
             (m["content"] for m in reversed(chat_history) if m["role"] == "user"),
@@ -111,7 +119,7 @@ def base_chat_logic(
     # LLM generation
     main_agent_messages = [{"role": "system", "content": prompt_main_agent + "\n\nContext:" + documents_joined}]
     model_answer = send_llm_request(
-        os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"),
+        MODEL_CONFIG["large_deployment"],
         main_agent_messages + chat_history
     )
 
@@ -119,7 +127,7 @@ def base_chat_logic(
     guardrail_response = guardrails(model_answer, model=True)
     model_guardrail_triggered = guardrail_response["guardrail_triggered"]
     if model_guardrail_triggered:
-        model_answer = guardrail_response["guardrail_answer"]
+        model_answer = CHAT_RESPONSES[guardrail_response["guardrail_type"]]
         generated_id_questions = []
         text_citation_map = []
         documents_joined = ""

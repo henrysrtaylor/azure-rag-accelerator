@@ -16,7 +16,7 @@ prompt_suggested_questions = markdown_loader("prompt_suggested_questions", numbe
 ###
 # Functions for query refinement and suggested questions generation
 ###
-def query_refinement(messages: list) -> str:
+def query_refinement(messages: list, deployment: str) -> str:
     """
     Function to refine a user's query based on the conversation history.
     """
@@ -29,7 +29,7 @@ def query_refinement(messages: list) -> str:
     ]
 
     return send_llm_request(
-        os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"),
+        deployment,
         query_refinement_messages
     ).strip()
 
