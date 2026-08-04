@@ -1,17 +1,17 @@
 """Azure client configuration and initialization.
 
 Provides cached client factories for Azure services (Search, OpenAI, Content Safety,
-Blob Storage) using DefaultAzureCredential for authentication.
+storage access) using DefaultAzureCredential for authentication.
 """
 import os
 from functools import lru_cache
 
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.ai.inference import ChatCompletionsClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import ChainedTokenCredential, AzureCliCredential, ManagedIdentityCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
-from azure.storage.blob import BlobServiceClient, ContainerClient
+from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 from dotenv import load_dotenv
 
 
@@ -26,9 +26,14 @@ def load_env_vars(path: str | None = None) -> None:
 
 
 @lru_cache(maxsize=1)
-def _get_credential() -> DefaultAzureCredential:
+def _get_credential() -> ChainedTokenCredential:
     """Get cached Azure credential for service authentication."""
-    return DefaultAzureCredential()
+    credential = ChainedTokenCredential(
+        AzureCliCredential(),
+        ManagedIdentityCredential()        
+    )
+    credential.get_token("https://cognitiveservices.azure.com/.default")  # avoid first-call latency or cold start
+    return credential
 
 
 @lru_cache(maxsize=1)
@@ -118,19 +123,19 @@ def get_content_safety_client() -> ContentSafetyClient:
     )
 
 
-def get_blob_container_client(container_name: str) -> ContainerClient:
+def get_storage_file_system_client(file_system_name: str) -> FileSystemClient:
     """
-    Get a Blob ContainerClient for the specified container.
+    Get an ADLS Gen2 FileSystemClient for the specified filesystem.
 
     Args:
-        container_name: Name of the blob container.
+        file_system_name: Name of the ADLS Gen2 filesystem.
 
     Returns:
-        ContainerClient for the specified container.
+        FileSystemClient for the specified filesystem.
     """
     load_env_vars()
-    blob_service_client = BlobServiceClient(
-        account_url=os.getenv("BLOB_ACCOUNT_URL"),
+    data_lake_service_client = DataLakeServiceClient(
+        account_url=os.getenv("STORAGE_DFS_ACCOUNT_URL"),
         credential=_get_credential()
     )
-    return blob_service_client.get_container_client(container_name)
+    return data_lake_service_client.get_file_system_client(file_system_name)

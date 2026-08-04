@@ -29,7 +29,7 @@ az login
 
 ### Step 1: Deploy Infrastructure
 
-Creates all Azure resources (Search, AI Services, Storage, Function App), assigns RBAC permissions, configures authentication, deploys models, and outputs `.env` file.
+Creates all Azure resources (Search, AI Services, ADLS Gen2 Storage, Function App), assigns RBAC permissions, configures authentication, deploys models, and outputs `.env` file.
 
 ```powershell
 cd infrastructure/deploy
@@ -45,7 +45,7 @@ The script will prompt for:
 
 ### Step 2: Upload Documents
 
-Uploads files from `data/documents/` to blob storage. Supports: pdf, doc, docx, txt, md, rtf, csv, json, xml, html. Update `data/documents/` with your desired documents first.
+Uploads files from `data/documents/` to the ADLS Gen2 `documents` filesystem. Supports: pdf, doc, docx, txt, md, rtf, csv, json, xml, html. Update `data/documents/` with your desired documents first.
 
 ```powershell
 .\upload_documents.ps1
@@ -127,7 +127,7 @@ The deployment script outputs a `.env` file with all required configuration. Key
 ```env
 AZURE_FOUNDRY_ENDPOINT=https://ai-{prefix}.services.ai.azure.com
 AZURE_SEARCH_SERVICE_ENDPOINT=https://srch-{prefix}.search.windows.net
-BLOB_ACCOUNT_URL=https://st{prefix}.blob.core.windows.net
+STORAGE_DFS_ACCOUNT_URL=https://st{prefix}.dfs.core.windows.net
 ```
 
 See [.env.example](../.env.example) for all available options.
