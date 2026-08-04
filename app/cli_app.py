@@ -79,80 +79,57 @@ def interactive_chat() -> None:
 
     STATIC_RESPONSES = {
         "entry": "Hello! I'm your RAG assistant. How can I help you today?",
-        "exit": "Goodbye! Have a great day!",
-        "empty_query": "Please enter a message."
     }
 
     chat_history: list[dict[str, str]] = []
-    exit_phrases = ['exit', 'quit', 'stop', 'bye', 'goodbye']
 
     print("\nRAG Assistant\n")
     while True:
-        empty_user_query = False
-        user_guardrail_triggered = False
-        
         # Entry message
-        if len(chat_history) == 0 and not empty_user_query and not user_guardrail_triggered:
+        if len(chat_history) == 0:
             print(f"\nAssistant: {STATIC_RESPONSES['entry']}")
 
-        user_query = input("\nUser: ").strip()
-
-        # Empty query
-        empty_user_query = not user_query
-        if empty_user_query:
-            print(f"\nAssistant: {STATIC_RESPONSES['empty_query']}")
-
-        # Exit
-        elif user_query.lower() in exit_phrases:
-            print(f"\nAssistant: {STATIC_RESPONSES['exit']}")
-            break
-
-        # Guardrail checks
-        elif option_guardrail_checks:
-            try:
-                response = requests.post(f"{API_BASE_URL}/guardrails", json={"query": user_query})
-                response.raise_for_status()
-                guardrail_response = response.json()
-                user_guardrail_triggered = guardrail_response.get("guardrail_triggered", False)
-                if user_guardrail_triggered:
-                    model_answer = guardrail_response.get("guardrail_answer", "Content blocked.")
-                    print(f"\nAssistant: {model_answer}")
-            except requests.RequestException as e:
-                print(f"\n[Error calling guardrails API: {e}]")
-                user_guardrail_triggered = False
+        user_query = input("\nUser: ")
 
         # Chat logic
-        if not user_guardrail_triggered and not empty_user_query:
-            chat_history.append({"role": "user", "content": user_query})
-            chat_history = chat_history[-12:]
-            
-            try:
-                response = requests.post(f"{API_BASE_URL}/chat", json={
-                    "chat_history": chat_history,
-                    "security_groups": security_groups
-                })
-                response.raise_for_status()
-                chat_response = response.json()
-            except requests.RequestException as e:
-                print(f"\n[Error calling chat API: {e}]")
-                continue
+        try:
+            response = requests.post(f"{API_BASE_URL}/chat", json={
+                "chat_history": chat_history + [{"role": "user", "content": user_query}],
+                "security_groups": security_groups,
+                "enable_guardrail_checks": option_guardrail_checks,
+            })
+            response.raise_for_status()
+            chat_response = response.json()
+        except requests.RequestException as e:
+            print(f"\n[Error calling chat API: {e}]")
+            continue
                 
-            model_answer = chat_response.get("assistant_message", {}).get("content", "")
-            suggested_questions = chat_response.get("suggested_questions", [])
-            references = chat_response.get("references", [])
+        model_answer = chat_response.get("assistant_message", {}).get("content", "")
+        suggested_questions = chat_response.get("suggested_questions", [])
+        references = chat_response.get("references", [])
         
-            print(f"\nAssistant: {model_answer}")
-            if len(references) > 0:
-                print("\nReferences:")
-                for ref in references:
-                    ref_id = ref['id']
-                    ref_text = ref['text']
-                    print(f"- [{ref_id}]. {ref_text}")
-            if len(suggested_questions) > 0:
-                print("\nSuggested Questions:")
-                for sug in suggested_questions:
-                    sug_text = sug['text']
-                    print(f"- {sug_text}")
+        print(f"\nAssistant: {model_answer}")
+        if len(references) > 0:
+            print("\nReferences:")
+            for ref in references:
+                ref_id = ref['id']
+                ref_text = ref['text']
+                print(f"- [{ref_id}]. {ref_text}")
+        if len(suggested_questions) > 0:
+            print("\nSuggested Questions:")
+            for sug in suggested_questions:
+                sug_text = sug['text']
+                print(f"- {sug_text}")
+
+        if chat_response.get("save_chat_history", True):
+            chat_history.extend([
+                {"role": "user", "content": user_query},
+                chat_response["assistant_message"],
+            ])
+            chat_history = chat_history[-12:]
+
+        if chat_response.get("end_conversation", False):
+            break
 
 
 if __name__ == "__main__":
