@@ -259,7 +259,8 @@ log_message(
 
 indexer_parameters = {
     "configuration": {
-        "allowSkillsetToReadFileData": True
+        "allowSkillsetToReadFileData": True, # to enable image handleing in skillset
+        # "executionEnvironment": "private" # to enable private execution environment for skillset
     }
 }
 schedule_indexer = IndexingSchedule(interval="P1D")
