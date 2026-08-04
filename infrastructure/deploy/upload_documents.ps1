@@ -1,7 +1,7 @@
 <#
 .DESCRIPTION
-    Upload documents to blob storage.
-    Uploads files from data/documents to Azure Blob Storage.
+    Upload documents to ADLS Gen2 storage.
+    Uploads files from data/documents to an Azure Data Lake Storage Gen2 filesystem.
     Reads storage account from .env file.
 
 .PARAMETER Overwrite
@@ -39,21 +39,22 @@ if (-not (Test-Path $EnvFile)) {
 }
 
 $envContent = Get-Content $EnvFile
-$StorageAccount = ($envContent | Where-Object { $_ -match "^BLOB_ACCOUNT_NAME=" }) -replace "BLOB_ACCOUNT_NAME=", "" -replace "'", ""
-$ContainerName = ($envContent | Where-Object { $_ -match "^BLOB_CONTAINER_NAME_DOCUMENTS=" }) -replace "BLOB_CONTAINER_NAME_DOCUMENTS=", "" -replace "'", ""
+$StorageAccount = ($envContent | Where-Object { $_ -match "^STORAGE_ACCOUNT_NAME=" }) -replace "STORAGE_ACCOUNT_NAME=", "" -replace "'", ""
+
+$ContainerName = ($envContent | Where-Object { $_ -match "^DOCUMENTS_FILESYSTEM_NAME=" }) -replace "DOCUMENTS_FILESYSTEM_NAME=", "" -replace "'", ""
 
 if ([string]::IsNullOrWhiteSpace($StorageAccount)) {
-    Write-Host "ERROR: BLOB_ACCOUNT_NAME not found in .env" -ForegroundColor Red
+    Write-Host "ERROR: STORAGE_ACCOUNT_NAME not found in .env" -ForegroundColor Red
     exit 1
 }
 
 if ([string]::IsNullOrWhiteSpace($ContainerName)) {
     $ContainerName = "documents"
-    Write-Host "  Using default container name: $ContainerName" -ForegroundColor Yellow
+    Write-Host "  Using default filesystem name: $ContainerName" -ForegroundColor Yellow
 }
 
 Write-Host "  Storage Account: $StorageAccount" -ForegroundColor Green
-Write-Host "  Container: $ContainerName" -ForegroundColor Green
+Write-Host "  Filesystem: $ContainerName" -ForegroundColor Green
 
 # ============================================================
 # STEP 2: Determine source folder
@@ -102,22 +103,43 @@ Write-Host "  Logged in as: $($account.user.name)" -ForegroundColor Green
 Write-Host ""
 Write-Host "[4/4] Uploading documents..." -ForegroundColor Cyan
 
-# Build az command arguments
-$azArgs = @(
-    "storage", "blob", "upload-batch",
-    "--account-name", $StorageAccount,
-    "--destination", $ContainerName,
-    "--source", $SourceFolder,
-    "--auth-mode", "login"
-)
-
-if ($Overwrite) {
-    $azArgs += "--overwrite"
-}
-
 Write-Host "  Uploading $FileCount file(s)..." -ForegroundColor Gray
 
-& az @azArgs
+az storage fs create --account-name $StorageAccount --name $ContainerName --auth-mode login --output none 2>$null
+
+$uploaded = 0
+foreach ($File in $Files) {
+    $relativePath = $File.FullName.Substring($SourceFolder.Length).TrimStart("\", "/") -replace "\\", "/"
+    $parentPath = Split-Path $relativePath -Parent
+
+    if (-not [string]::IsNullOrWhiteSpace($parentPath)) {
+        $directoryPath = $parentPath -replace "\\", "/"
+        az storage fs directory create --account-name $StorageAccount --file-system $ContainerName --name $directoryPath --auth-mode login --output none 2>$null
+    }
+
+    $azArgs = @(
+        "storage", "fs", "file", "upload",
+        "--account-name", $StorageAccount,
+        "--file-system", $ContainerName,
+        "--path", $relativePath,
+        "--source", $File.FullName,
+        "--auth-mode", "login",
+        "--output", "none"
+    )
+
+    if ($Overwrite) {
+        $azArgs += @("--overwrite", "true")
+    }
+
+    & az @azArgs
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Upload failed for $relativePath" -ForegroundColor Red
+        exit 1
+    }
+
+    $uploaded++
+}
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Upload failed" -ForegroundColor Red
@@ -129,7 +151,7 @@ Write-Host "========================================"
 Write-Host "         Upload Complete!"
 Write-Host "========================================"
 Write-Host ""
-Write-Host "Uploaded $FileCount file(s) to:" -ForegroundColor Green
-Write-Host "  https://$StorageAccount.blob.core.windows.net/$ContainerName" -ForegroundColor Cyan
+Write-Host "Uploaded $uploaded file(s) to:" -ForegroundColor Green
+Write-Host "  https://$StorageAccount.dfs.core.windows.net/$ContainerName" -ForegroundColor Cyan
 Write-Host ""
 

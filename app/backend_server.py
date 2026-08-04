@@ -102,12 +102,12 @@ def health_check() -> dict:
             "AZURE_SEARCH_SERVICE_ENDPOINT",
             "AZURE_SEARCH_API_VERSION",
             "AZURE_SEARCH_PROJECT_PREFIX",
-            "BLOB_ACCOUNT_NAME",
-            "BLOB_CONTAINER_NAME_DOCUMENTS",
-            "BLOB_CONTAINER_NAME_EVAL",
-            "BLOB_DOCUMENT_NAME_EVAL",
-            "BLOB_ACCOUNT_URL",
-            "BLOB_CONNECTION_STRING",
+            "STORAGE_ACCOUNT_NAME",
+            "DOCUMENTS_FILESYSTEM_NAME",
+            "EVALUATION_FILESYSTEM_NAME",
+            "EVALUATION_DOCUMENT_NAME",
+            "STORAGE_DFS_ACCOUNT_URL",
+            "STORAGE_CONNECTION_STRING",
             "LOGGING_CONNECTION_STRING"
         ]
         missing_vars = [var for var in required_vars if not os.getenv(var)]

@@ -49,7 +49,7 @@ For each resource in Azure Portal:
 
 | Target Resource | Role | Purpose |
 |-----------------|------|---------|
-| Blob Storage | **Storage Blob Data Reader** | Read source documents for indexing |
+| ADLS Gen2 | **Storage Blob Data Reader** | Read source documents for indexing |
 | Azure AI Foundry | **Cognitive Services OpenAI User** | Generate embeddings in skillset |
 | Azure Functions | **Allowed via Entra ID auth** | Call WebApiSkill for security groups |
 
@@ -57,7 +57,7 @@ For each resource in Azure Portal:
 
 | Target Resource | Role | Purpose |
 |-----------------|------|---------|
-| Blob Storage | **Storage Blob Data Reader** | Read security groups JSON (if using blob) |
+| ADLS Gen2 | **Storage Blob Data Reader** | Read security groups JSON (if using storage) |
 | Cosmos DB | **Cosmos DB Built-in Data Reader** | Read security groups (production) |
 
 ### Application/Container → Other Resources
@@ -66,7 +66,7 @@ For each resource in Azure Portal:
 |-----------------|------|---------|
 | Azure AI Search | **Search Index Data Reader** | Query index |
 | Azure AI Foundry | **Cognitive Services OpenAI User** | LLM completions, embeddings, content safety |
-| Blob Storage | **Storage Blob Data Reader** | Read evaluation datasets |
+| ADLS Gen2 | **Storage Blob Data Reader** | Read evaluation datasets |
 | Application Insights | **Monitoring Metrics Publisher** | Send telemetry |
 
 ### Indexer Scripts → Other Resources
@@ -357,7 +357,7 @@ The extracted `groups` list contains GUIDs that are passed to `build_security_fi
 ## Permissions Checklist
 
 ### Managed Identity Assignments
-- [ ] Search Service MI → Storage Blob Data Reader on Blob Storage
+- [ ] Search Service MI → Storage Blob Data Reader on ADLS Gen2
 - [ ] Search Service MI → Cognitive Services OpenAI User on Azure AI Foundry
 - [ ] Function App MI → Storage Blob Data Reader (or Cosmos DB Reader)
 - [ ] App/Container MI → Search Index Data Reader

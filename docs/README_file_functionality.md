@@ -7,7 +7,7 @@ This document provides a brief overview of each Python file in the codebase.
 ## Core RAG Library (`raglib/`)
 
 ### `config.py`
-Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and Blob Storage. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
+Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and storage access. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
 
 ### `log.py`
 Structured logging to Azure Application Insights. Provides a `log_message()` function that sends custom events with severity levels and additional properties (tags, timestamps) for telemetry and debugging.
