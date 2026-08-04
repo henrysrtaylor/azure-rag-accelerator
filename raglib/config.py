@@ -8,7 +8,7 @@ from functools import lru_cache
 
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.ai.inference import ChatCompletionsClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import ChainedTokenCredential, AzureCliCredential, ManagedIdentityCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
@@ -26,9 +26,14 @@ def load_env_vars(path: str | None = None) -> None:
 
 
 @lru_cache(maxsize=1)
-def _get_credential() -> DefaultAzureCredential:
+def _get_credential() -> ChainedTokenCredential:
     """Get cached Azure credential for service authentication."""
-    return DefaultAzureCredential()
+    credential = ChainedTokenCredential(
+        AzureCliCredential(),
+        ManagedIdentityCredential()        
+    )
+    credential.get_token("https://cognitiveservices.azure.com/.default")  # avoid first-call latency or cold start
+    return credential
 
 
 @lru_cache(maxsize=1)
