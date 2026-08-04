@@ -53,6 +53,11 @@ def _create_chat_response(
     }
 
 
+def failure_chat_response() -> dict:
+    """Create the standard response for an unexpected chat failure."""
+    return _create_chat_response(CHAT_RESPONSES["failure"])
+
+
 def _get_control_response(latest_user_query: str, enable_guardrail_checks: bool = True) -> Optional[dict]:
     """Return early responses for empty/exit input or triggered user guardrails."""
     latest_user_query = latest_user_query.strip()
@@ -99,7 +104,7 @@ def base_chat_logic(
 
     # Query refinement
     if enable_query_refinement:
-        user_query = query_refinement(chat_history, MODEL_CONFIG)
+        user_query = query_refinement(chat_history, MODEL_CONFIG["large_deployment"])
     else:
         user_query = next(
             (m["content"] for m in reversed(chat_history) if m["role"] == "user"),
@@ -219,6 +224,5 @@ def inference_chat_logic(
         enable_query_refinement=enable_query_refinement,
         enable_suggested_questions=enable_suggested_questions,
     )
-    chat_response.pop("document_context")
     chat_response["end_conversation"] = False
     return chat_response
