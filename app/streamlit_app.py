@@ -14,9 +14,11 @@ load_env_vars()
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
-# Default values from env vars (can be overridden by toggles)
-DEFAULT_GUARDRAIL_CHECKS = os.getenv("OPTION_GUARDRAIL_CHECKS", "true").lower() in ("true", "1", "yes")
-DEFAULT_SECURITY_GROUPS = os.getenv("OPTION_SECURITY_GROUPS", "true").lower() in ("true", "1", "yes")
+# Client-owned feature defaults (can be overridden by setup toggles)
+DEFAULT_QUERY_REFINEMENT = True
+DEFAULT_GUARDRAIL_CHECKS = True
+DEFAULT_SUGGESTED_QUESTIONS = True
+DEFAULT_SECURITY_GROUPS = True
 DEFAULT_SHOW_REFERENCES = True
 DEFAULT_SHOW_SUGGESTED_QS = True
 
@@ -86,8 +88,12 @@ if "user_name" not in st.session_state:
 # Option toggles - initialized from defaults
 if "opt_auth" not in st.session_state:
     st.session_state.opt_auth = DEFAULT_SECURITY_GROUPS
+if "opt_query_refinement" not in st.session_state:
+    st.session_state.opt_query_refinement = DEFAULT_QUERY_REFINEMENT
 if "opt_guardrails" not in st.session_state:
     st.session_state.opt_guardrails = DEFAULT_GUARDRAIL_CHECKS
+if "opt_suggested_questions" not in st.session_state:
+    st.session_state.opt_suggested_questions = DEFAULT_SUGGESTED_QUESTIONS
 if "opt_references" not in st.session_state:
     st.session_state.opt_references = DEFAULT_SHOW_REFERENCES
 if "opt_suggested_qs" not in st.session_state:
@@ -108,10 +114,20 @@ with st.sidebar:
         value=st.session_state.opt_auth, 
         disabled=disabled
     )
+    st.session_state.opt_query_refinement = st.toggle(
+        "Query Refinement",
+        value=st.session_state.opt_query_refinement,
+        disabled=disabled,
+    )
     st.session_state.opt_guardrails = st.toggle(
         "Guardrail Checks", 
         value=st.session_state.opt_guardrails, 
         disabled=disabled
+    )
+    st.session_state.opt_suggested_questions = st.toggle(
+        "Generate Suggested Questions",
+        value=st.session_state.opt_suggested_questions,
+        disabled=disabled,
     )
     
     st.divider()
@@ -206,7 +222,9 @@ if prompt:
                 response = requests.post(f"{API_BASE_URL}/chat", json={
                     "chat_history": chat_history,
                     "security_groups": st.session_state.security_groups,
+                    "enable_query_refinement": st.session_state.opt_query_refinement,
                     "enable_guardrail_checks": st.session_state.opt_guardrails,
+                    "enable_suggested_questions": st.session_state.opt_suggested_questions,
                 })
                 response.raise_for_status()
                 chat_response = response.json()

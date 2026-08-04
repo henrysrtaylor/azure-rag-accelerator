@@ -41,7 +41,9 @@ class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     chat_history: list[Message] = Field(..., description="List of previous chat messages")
     security_groups: Optional[list[str]] = Field(default=None, description="User security groups for DLS filtering")
-    enable_guardrail_checks: bool = Field(default=True, description="Validate the latest user message before retrieval")
+    enable_query_refinement: bool = Field(..., description="Refine the latest user query before retrieval")
+    enable_guardrail_checks: bool = Field(..., description="Validate the latest user message before retrieval")
+    enable_suggested_questions: bool = Field(..., description="Generate follow-up questions")
 
 
 class ChatResponse(BaseModel):
@@ -138,7 +140,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
         response = inference_chat_logic(
             chat_history=chat_history_dict,
             security_filter=security_filter,
+            enable_query_refinement=request.enable_query_refinement,
             enable_guardrail_checks=request.enable_guardrail_checks,
+            enable_suggested_questions=request.enable_suggested_questions,
         )
         
         return response
