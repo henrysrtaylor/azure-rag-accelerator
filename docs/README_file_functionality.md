@@ -7,7 +7,7 @@ This document provides a brief overview of each Python file in the codebase.
 ## Core RAG Library (`raglib/`)
 
 ### `config.py`
-Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and Blob Storage. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
+Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and storage access. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
 
 ### `log.py`
 Structured logging to Azure Application Insights. Provides a `log_message()` function that sends custom events with severity levels and additional properties (tags, timestamps) for telemetry and debugging.
@@ -16,7 +16,7 @@ Structured logging to Azure Application Insights. Provides a `log_message()` fun
 Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Azure AI Foundry for chat completions.
 
 ### `pipeline.py`
-Main chat orchestration logic. `base_chat_logic()` coordinates the full RAG pipeline: query refinement → document retrieval → citation formatting → LLM response → guardrail checks → suggested questions. `inference_chat_logic()` wraps this with user guardrail pre-checks. `evaluation_chat_logic()` is a simplified version for testing.
+Main chat orchestration logic. `base_chat_logic()` coordinates the full RAG pipeline: query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. `inference_chat_logic()` applies user guardrails before retrieval and returns whether the client should retain the turn. `evaluation_chat_logic()` is a simplified version for testing.
 
 ### `permissions.py`
 Document-Level Security (DLS) implementation. `build_security_filter()` converts user security group GUIDs into an OData filter expression that restricts search results to documents the user is authorized to view.
@@ -42,13 +42,13 @@ Markdown template management. Loads `.md` files from the prompts folder with sup
 ## Applications (`app/`)
 
 ### `backend_server.py`
-FastAPI REST API server. Exposes `/chat` endpoint for RAG interactions, `/guardrails` for testing content moderation, and `/health_check` for monitoring. Handles request/response serialization and security group passthrough.
+FastAPI REST API server. Exposes `/chat` for RAG interactions, user and model guardrails, empty-message and exit-command responses, and the history-save decision; `/health_check` provides monitoring. Handles request/response serialization and security group passthrough.
 
 ### `streamlit_app.py`
-Web-based chat interface built with Streamlit. Provides a modern UI with MSAL authentication, configurable options (guardrails, DLS, references, suggested questions), and real-time chat with the RAG backend. Calls the FastAPI backend via HTTP.
+Web-based chat interface built with Streamlit. Provides a modern UI with MSAL authentication, configurable options (guardrails, DLS, references, suggested questions), and real-time chat with the RAG backend. Calls the unified FastAPI `/chat` endpoint via HTTP.
 
 ### `cli_app.py`
-Interactive command-line chat client (legacy). Authenticates users via MSAL (browser-based Microsoft login), extracts security groups from the JWT token, and provides a terminal-based conversation interface. Useful for testing and headless environments.
+Interactive command-line chat client (legacy). Authenticates users via MSAL (browser-based Microsoft login), extracts security groups from the JWT token, and provides a terminal-based conversation interface through the unified `/chat` endpoint. Useful for testing and headless environments.
 
 ---
 

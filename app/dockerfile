@@ -27,12 +27,6 @@ COPY app/ /app/app/
 # Copy .env file
 COPY .env /app/.env
 
-# Option flags as env variables (can be overridden at runtime)
-ENV OPTION_QUERY_REFINEMENT=true
-ENV OPTION_GUARDRAIL_CHECKS=true
-ENV OPTION_SUGGESTED_QUESTIONS=true
-ENV OPTION_SECURITY_GROUPS=true
-
 # Streamlit config
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_PORT=8501

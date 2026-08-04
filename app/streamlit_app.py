@@ -14,9 +14,11 @@ load_env_vars()
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
-# Default values from env vars (can be overridden by toggles)
-DEFAULT_GUARDRAIL_CHECKS = os.getenv("OPTION_GUARDRAIL_CHECKS", "true").lower() in ("true", "1", "yes")
-DEFAULT_SECURITY_GROUPS = os.getenv("OPTION_SECURITY_GROUPS", "true").lower() in ("true", "1", "yes")
+# Client-owned feature defaults (can be overridden by setup toggles)
+DEFAULT_QUERY_REFINEMENT = True
+DEFAULT_GUARDRAIL_CHECKS = True
+DEFAULT_SUGGESTED_QUESTIONS = True
+DEFAULT_SECURITY_GROUPS = True
 DEFAULT_SHOW_REFERENCES = True
 DEFAULT_SHOW_SUGGESTED_QS = True
 
@@ -86,8 +88,12 @@ if "user_name" not in st.session_state:
 # Option toggles - initialized from defaults
 if "opt_auth" not in st.session_state:
     st.session_state.opt_auth = DEFAULT_SECURITY_GROUPS
+if "opt_query_refinement" not in st.session_state:
+    st.session_state.opt_query_refinement = DEFAULT_QUERY_REFINEMENT
 if "opt_guardrails" not in st.session_state:
     st.session_state.opt_guardrails = DEFAULT_GUARDRAIL_CHECKS
+if "opt_suggested_questions" not in st.session_state:
+    st.session_state.opt_suggested_questions = DEFAULT_SUGGESTED_QUESTIONS
 if "opt_references" not in st.session_state:
     st.session_state.opt_references = DEFAULT_SHOW_REFERENCES
 if "opt_suggested_qs" not in st.session_state:
@@ -108,10 +114,20 @@ with st.sidebar:
         value=st.session_state.opt_auth, 
         disabled=disabled
     )
+    st.session_state.opt_query_refinement = st.toggle(
+        "Query Refinement",
+        value=st.session_state.opt_query_refinement,
+        disabled=disabled,
+    )
     st.session_state.opt_guardrails = st.toggle(
         "Guardrail Checks", 
         value=st.session_state.opt_guardrails, 
         disabled=disabled
+    )
+    st.session_state.opt_suggested_questions = st.toggle(
+        "Generate Suggested Questions",
+        value=st.session_state.opt_suggested_questions,
+        disabled=disabled,
     )
     
     st.divider()
@@ -192,66 +208,58 @@ if st.session_state.pending_question:
 
 if prompt:
     # Display user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Check guardrails first
-    guardrail_triggered = False
-    if st.session_state.opt_guardrails:
-        try:
-            response = requests.post(f"{API_BASE_URL}/guardrails", json={"query": prompt})
-            response.raise_for_status()
-            guardrail_result = response.json()
-            guardrail_triggered = guardrail_result.get("guardrail_triggered", False)
-            if guardrail_triggered:
-                answer = guardrail_result.get("guardrail_answer", "Content blocked.")
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-                with st.chat_message("assistant"):
-                    st.markdown(answer)
-        except requests.RequestException as e:
-            st.error(f"Guardrails API error: {e}")
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            try:
+                chat_history = [
+                    {"role": message["role"], "content": message["content"]}
+                    for message in st.session_state.messages[-12:]
+                ] + [{"role": "user", "content": prompt}]
 
-    # Call chat API if guardrails passed
-    if not guardrail_triggered:
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    # Build chat history (last 12 messages)
-                    chat_history = [{"role": m["role"], "content": m["content"]} 
-                                    for m in st.session_state.messages[-12:]]
-                    
-                    response = requests.post(f"{API_BASE_URL}/chat", json={
-                        "chat_history": chat_history,
-                        "security_groups": st.session_state.security_groups
-                    })
-                    response.raise_for_status()
-                    chat_response = response.json()
-                    
-                    answer = chat_response.get("assistant_message", {}).get("content", "")
-                    references = chat_response.get("references", [])
-                    suggested_questions = chat_response.get("suggested_questions", [])
-                    
-                    st.markdown(answer)
-                    
-                    if st.session_state.opt_references and references:
-                        with st.expander("📚 References"):
-                            for ref in references:
-                                st.markdown(f"**[{ref['id']}]** {ref['text']}")
-                    
-                    if st.session_state.opt_suggested_qs and suggested_questions:
-                        with st.expander("💡 Suggested Questions"):
-                            for i, sq in enumerate(suggested_questions):
-                                if st.button(sq['text'], key=f"sq_new_{i}", use_container_width=True):
-                                    st.session_state.pending_question = sq['text']
-                                    st.rerun()
-                    
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": answer,
-                        "references": references,
-                        "suggested_questions": suggested_questions
-                    })
-                    
-                except requests.RequestException as e:
-                    st.error(f"Chat API error: {e}")
+                response = requests.post(f"{API_BASE_URL}/chat", json={
+                    "chat_history": chat_history,
+                    "security_groups": st.session_state.security_groups,
+                    "enable_query_refinement": st.session_state.opt_query_refinement,
+                    "enable_guardrail_checks": st.session_state.opt_guardrails,
+                    "enable_suggested_questions": st.session_state.opt_suggested_questions,
+                })
+                response.raise_for_status()
+                chat_response = response.json()
+
+                answer = chat_response.get("assistant_message", {}).get("content", "")
+                references = chat_response.get("references", [])
+                suggested_questions = chat_response.get("suggested_questions", [])
+
+                st.markdown(answer)
+
+                if st.session_state.opt_references and references:
+                    with st.expander("📚 References"):
+                        for ref in references:
+                            st.markdown(f"**[{ref['id']}]** {ref['text']}")
+
+                if st.session_state.opt_suggested_qs and suggested_questions:
+                    with st.expander("💡 Suggested Questions"):
+                        for i, sq in enumerate(suggested_questions):
+                            if st.button(sq['text'], key=f"sq_new_{i}", use_container_width=True):
+                                st.session_state.pending_question = sq['text']
+                                st.rerun()
+
+                if chat_response.get("save_chat_history", True):
+                    st.session_state.messages.extend([
+                        {"role": "user", "content": prompt},
+                        {
+                            "role": "assistant",
+                            "content": answer,
+                            "references": references,
+                            "suggested_questions": suggested_questions,
+                        },
+                    ])
+
+                if chat_response.get("end_conversation", False):
+                    st.session_state.messages = []
+
+            except requests.RequestException as e:
+                st.error(f"Chat API error: {e}")

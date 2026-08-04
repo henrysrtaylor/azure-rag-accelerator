@@ -13,9 +13,6 @@ from raglib.config import get_content_safety_client
 from raglib.prompts.markdown_loader import markdown_loader
 
 prompt_guardrail_ontopic = markdown_loader("prompt_guardrail_ontopic")
-response_inappropriate = markdown_loader("responses/response_inappropriate")
-response_jailbreak = markdown_loader("responses/response_jailbreak")
-response_offtopic = markdown_loader("responses/response_offtopic")
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
 REPLACE_WORDS = [("     ", ""), ("    ", ""), ("   ", ""), ("  ", ""), (" ", ""), ("@", "a"), ("3", "e"), ("!", "i"), ("1", "l"), ("$", "s")]
@@ -84,119 +81,99 @@ def detect_jailbreak(text: str) -> bool:
     return result['userPromptAnalysis']['attackDetected']
 
 
-def check_content_safety(user_query: str) -> dict[str, bool]:
+def _is_content_moderation_detected(text: str) -> bool:
     """
-    Run content moderation and jailbreak detection on user input.
+    Check whether text crosses content moderation thresholds.
 
     Args:
-        user_query: The user's query text.
+        text: Input text.
 
     Returns:
-        Dict with 'content_moderation_detected' and 'prompt_injection_detected' bools.
+        True when any category meets or exceeds configured thresholds.
     """
-    text_moderation_results = moderate_content(user_query)
+    text_moderation_results = moderate_content(text)
     
     hate_guardrail_threshold = int(os.getenv("PARAMETER_HATE_GUARDRAIL_THRESHOLD", "4"))
     selfharm_guardrail_threshold = int(os.getenv("PARAMETER_SELFHARM_GUARDRAIL_THRESHOLD", "4"))
     sexual_guardrail_threshold = int(os.getenv("PARAMETER_SEXUAL_GUARDRAIL_THRESHOLD", "4"))
     violence_guardrail_threshold = int(os.getenv("PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD", "4"))
     
-    content_moderation_detected =  (
-        text_moderation_results['hate'] >= hate_guardrail_threshold or 
-        text_moderation_results['self_harm'] >= selfharm_guardrail_threshold or 
-        text_moderation_results['sexual'] >= sexual_guardrail_threshold or 
+    return (
+        text_moderation_results['hate'] >= hate_guardrail_threshold or
+        text_moderation_results['self_harm'] >= selfharm_guardrail_threshold or
+        text_moderation_results['sexual'] >= sexual_guardrail_threshold or
         text_moderation_results['violence'] >= violence_guardrail_threshold
     )
-    
-    prompt_injection_detected = detect_jailbreak(user_query)
-                               
-    return {
-        "content_moderation_detected": content_moderation_detected,
-        "prompt_injection_detected": prompt_injection_detected,
-    }
 
 
-def check_topic_relevance(user_query: str, deployment_name: str) -> str:
+def _is_off_topic(user_query: str, deployment_name: str) -> bool:
     """
-    Use LLM-as-judge to classify if query is on-topic.
+    Use LLM-as-judge to classify if query is off-topic.
 
     Args:
         user_query: The user's query text.
         deployment_name: The LLM deployment to use.
 
     Returns:
-        Lowercase classification string (e.g., 'true', 'false', 'off-topic').
+        True when the query is classified as off-topic.
     """ 
       
     guardrail_messages = [
         {"role": "system", "content": prompt_guardrail_ontopic},
         {"role": "user", "content": user_query}
     ]
-    return send_llm_request(deployment_name, guardrail_messages).strip().lower()
+    on_topic = send_llm_request(deployment_name, guardrail_messages).strip().lower()
+    return on_topic in ("false", "no", "0", "off-topic", "off topic", "not relevant", "not related", "irrelevant")
 
 
-def check_user_guardrails(user_query: str) -> dict[str, bool | str | None]:
+def _run_guardrails(query: str, check_prompt_and_topic: bool) -> dict[str, bool]:
+    """Run guardrail checks and return detection flags."""
+    content_moderation_detected = _is_content_moderation_detected(query)
+
+    if not check_prompt_and_topic:
+        return {
+            "content_moderation_detected": content_moderation_detected,
+        }
+
+    prompt_injection_detected = detect_jailbreak(query)
+    off_topic_detected = _is_off_topic(query, os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"))
+
+    return {
+        "content_moderation_detected": content_moderation_detected,
+        "prompt_injection_detected": prompt_injection_detected,
+        "off_topic_detected": off_topic_detected,
+    }
+
+
+def guardrails(query: str, model: bool = False) -> dict[str, bool | str | None]:
     """
-    Run all guardrail checks on user query.
+    Run guardrail checks for user input or model output.
 
     Args:
-        user_query: The user's query text.
+        query: Text to evaluate.
+        model: When True, run model-output checks only.
 
     Returns:
-        Dict with 'guardrail_triggered' (bool), 'guardrail_type' (str|None),
-        and 'guardrail_answer' (str|None).
-    """   
-    guardrail_results = check_content_safety(user_query)
-    on_topic = check_topic_relevance(user_query, os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"))
+        Dict with 'guardrail_triggered' (bool) and 'guardrail_type' (str|None).
+    """
+    guardrail_results = _run_guardrails(query, check_prompt_and_topic=not model)
     
     if guardrail_results['content_moderation_detected']:
-        guardrail_answer = response_inappropriate
         guardrail_type = "inappropriate_text"
         
-    elif guardrail_results['prompt_injection_detected']:
-        guardrail_answer = response_jailbreak
+    elif not model and guardrail_results['prompt_injection_detected']:
         guardrail_type = "jailbreak_attempt"
         
-    elif on_topic in ("false", "no", "0", "off-topic", "off topic", "not relevant", "not related", "irrelevant"):
-        guardrail_answer = response_offtopic
+    elif not model and guardrail_results['off_topic_detected']:
         guardrail_type = "off_topic_query"
         
     else:
         return {
             "guardrail_triggered": False,
             "guardrail_type": None,
-            "guardrail_answer": None,
         }
         
     return {
         "guardrail_triggered": True,
         "guardrail_type": guardrail_type,
-        "guardrail_answer": guardrail_answer,
-    }
-
-
-def check_model_guardrails(model_answer: str) -> dict[str, bool | str | None]:
-    """
-    Run guardrail checks on LLM model output.
-
-    Args:
-        model_answer: The model's response text.
-
-    Returns:
-        Dict with 'guardrail_triggered' (bool), 'guardrail_type' (str|None),
-        and 'guardrail_answer' (str|None).
-    """   
-    guardrail_results = check_content_safety(model_answer)
-    
-    if guardrail_results['content_moderation_detected']:
-        return {
-            "guardrail_triggered": True,
-            "guardrail_type": "inappropriate_text",
-            "guardrail_answer": response_inappropriate,
-        }
-        
-    return {
-        "guardrail_triggered": False,
-        "guardrail_type": None,
-        "guardrail_answer": None,
     }

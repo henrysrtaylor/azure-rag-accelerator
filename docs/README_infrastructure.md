@@ -12,7 +12,7 @@ This document lists all Azure resources required to run the RAG solution.
 |----------|---------------|---------|
 | **AI Search** | Azure AI Search (Standard tier+) | Vector, keyword, and semantic search with indexer support |
 | **AI Foundry** | Azure AI Foundry | LLM, embeddings, and content safety (all-in-one) |
-| **Document Storage** | Azure Blob Storage | Source documents for indexing |
+| **Document Storage** | Azure Data Lake Storage Gen2 | Source documents for indexing |
 
 > **Note**: Azure AI Foundry now includes Content Safety capabilities (text moderation, prompt injection detection). No separate Cognitive Services or Content Safety resource is needed.
 
@@ -73,17 +73,17 @@ Azure AI Foundry is the unified platform providing all AI capabilities:
 
 ---
 
-### Azure Blob Storage
+### Azure Data Lake Storage Gen2
 
-**Required Containers**:
+**Required Filesystems**:
 
-| Container | Purpose |
+| Filesystem | Purpose |
 |-----------|---------|
 | `documents` | Source PDF/document files |
 | `evaluation` | Test datasets (JSONL format) - optional |
 
 **Configuration**:
-- Soft delete enabled (for indexer deletion detection)
+- Hierarchical namespace enabled
 - Managed Identity access for Search Service
 
 ---
@@ -149,12 +149,13 @@ AZURE_SEARCH_SERVICE_ENDPOINT=https://<service>.search.windows.net/
 AZURE_SEARCH_API_VERSION=2024-07-01
 AZURE_SEARCH_PROJECT_PREFIX=myproject       # Index naming prefix
 
-# Blob Storage
-BLOB_ACCOUNT_NAME=<account>
-BLOB_ACCOUNT_URL=https://<account>.blob.core.windows.net/
-BLOB_CONNECTION_STRING=DefaultEndpointsProtocol=...
-BLOB_CONTAINER_NAME_DOCUMENTS=documents
-BLOB_CONTAINER_NAME_EVAL=evaluation
+# ADLS Gen2 Storage
+STORAGE_ACCOUNT_NAME=<account>
+STORAGE_DFS_ACCOUNT_URL=https://<account>.dfs.core.windows.net/
+STORAGE_CONNECTION_STRING=ResourceId=/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.Storage/storageAccounts/<account>
+DOCUMENTS_FILESYSTEM_NAME=documents
+EVALUATION_FILESYSTEM_NAME=evaluation
+EVALUATION_DOCUMENT_NAME=example_golden_dataset.json
 
 # Content Safety (via AI Foundry endpoint)
 AZURE_CONTENT_MODERATOR_ENDPOINT=https://<resource>.cognitiveservices.azure.com/
@@ -210,7 +211,7 @@ PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD=4
 │  │                                   │ WebApiSkill                 │ │
 │  │                                   ▼                             │ │
 │  │  ┌─────────────────┐     ┌─────────────────┐                   │ │
-│  │  │  Blob Storage   │     │  Azure          │                   │ │
+│  │  │  ADLS Gen2      │     │  Azure          │                   │ │
 │  │  │                 │     │  Functions      │                   │ │
 │  │  │  - documents    │────▶│                 │                   │ │
 │  │  │  - evaluation   │     │  Security       │                   │ │
@@ -252,7 +253,7 @@ PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD=4
 
 - [ ] Azure AI Search (Standard tier) created
 - [ ] Azure AI Foundry resource with model deployments
-- [ ] Blob Storage account with `documents` container
+- [ ] ADLS Gen2 account with `documents` filesystem
 - [ ] Application Insights workspace created
 - [ ] Azure Functions app deployed with authentication
 - [ ] **User Auth App Registration** - for MSAL login with groups claim

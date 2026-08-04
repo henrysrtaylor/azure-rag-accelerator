@@ -1,19 +1,18 @@
 """FastAPI backend server for RAG chat API.
 
-Provides REST endpoints for chat, guardrails, and health checks.
+Provides REST endpoints for chat and health checks.
 Run with: uvicorn app.backend_server:app --reload
 """
 import os
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from raglib.config import load_env_vars
-from raglib.guardrails import check_user_guardrails
 from raglib.permissions import build_security_filter
-from raglib.pipeline import inference_chat_logic
+from raglib.pipeline import failure_chat_response, inference_chat_logic
 
 load_env_vars()
 
@@ -42,6 +41,9 @@ class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     chat_history: list[Message] = Field(..., description="List of previous chat messages")
     security_groups: Optional[list[str]] = Field(default=None, description="User security groups for DLS filtering")
+    enable_query_refinement: bool = Field(..., description="Refine the latest user query before retrieval")
+    enable_guardrail_checks: bool = Field(..., description="Validate the latest user message before retrieval")
+    enable_suggested_questions: bool = Field(..., description="Generate follow-up questions")
 
 
 class ChatResponse(BaseModel):
@@ -49,18 +51,10 @@ class ChatResponse(BaseModel):
     assistant_message: Message = Field(..., description="The assistant's response message")
     suggested_questions: list = Field(default=[], description="List of suggested follow-up questions")
     references: list = Field(default=[], description="List of citation references")
-
-
-class GuardrailRequest(BaseModel):
-    """Request body for guardrails endpoint."""
-    query: str = Field(..., description="Text to check against guardrails")
-
-
-class GuardrailResponse(BaseModel):
-    """Response body for guardrails endpoint."""
-    guardrail_triggered: bool = Field(..., description="Whether a guardrail was triggered")
-    guardrail_type: Optional[str] = Field(None, description="Type of guardrail triggered")
-    guardrail_answer: Optional[str] = Field(None, description="Response message if triggered")
+    guardrail_triggered: bool = Field(default=False, description="Whether a guardrail handled the request")
+    guardrail_type: Optional[str] = Field(default=None, description="Type of triggered guardrail")
+    save_chat_history: bool = Field(default=True, description="Whether clients should persist this turn")
+    end_conversation: bool = Field(default=False, description="Whether an interactive client should end the conversation")
 
 
 @app.get("/", tags=["Health"])
@@ -102,12 +96,12 @@ def health_check() -> dict:
             "AZURE_SEARCH_SERVICE_ENDPOINT",
             "AZURE_SEARCH_API_VERSION",
             "AZURE_SEARCH_PROJECT_PREFIX",
-            "BLOB_ACCOUNT_NAME",
-            "BLOB_CONTAINER_NAME_DOCUMENTS",
-            "BLOB_CONTAINER_NAME_EVAL",
-            "BLOB_DOCUMENT_NAME_EVAL",
-            "BLOB_ACCOUNT_URL",
-            "BLOB_CONNECTION_STRING",
+            "STORAGE_ACCOUNT_NAME",
+            "DOCUMENTS_FILESYSTEM_NAME",
+            "EVALUATION_FILESYSTEM_NAME",
+            "EVALUATION_DOCUMENT_NAME",
+            "STORAGE_DFS_ACCOUNT_URL",
+            "STORAGE_CONNECTION_STRING",
             "LOGGING_CONNECTION_STRING"
         ]
         missing_vars = [var for var in required_vars if not os.getenv(var)]
@@ -145,36 +139,15 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # Call the inference logic
         response = inference_chat_logic(
             chat_history=chat_history_dict,
-            security_filter=security_filter
+            security_filter=security_filter,
+            enable_query_refinement=request.enable_query_refinement,
+            enable_guardrail_checks=request.enable_guardrail_checks,
+            enable_suggested_questions=request.enable_suggested_questions,
         )
         
         return response
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing chat request: {str(e)}"
-        )
-
-
-@app.post("/guardrails", response_model=GuardrailResponse, tags=["Guardrails"])
-async def check_guardrails(request: GuardrailRequest) -> GuardrailResponse:
-    """Check text against content safety guardrails."""
-    try:
-        result = check_user_guardrails(
-            user_query=request.query
-        )
-        
-        return result
-    except ValueError as ve:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(ve)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error checking guardrails: {str(e)}"
-        )
+    except Exception:
+        return failure_chat_response()
 
 
 if __name__ == "__main__":
