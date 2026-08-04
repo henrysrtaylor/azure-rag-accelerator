@@ -4,6 +4,7 @@ Provides REST endpoints for chat and health checks.
 Run with: uvicorn app.backend_server:app --reload
 """
 import os
+import traceback
 from typing import Optional
 
 from fastapi import FastAPI
@@ -130,23 +131,18 @@ def health_check() -> dict:
 async def chat(request: ChatRequest) -> ChatResponse:
     """Process a chat request and return RAG-generated response."""
     try:
-        # Convert Pydantic models to dict for the function
         chat_history_dict = [dict(msg) for msg in request.chat_history]
-        
-        # Build security filter from groups passed by application
         security_filter = build_security_filter(request.security_groups)
-        
-        # Call the inference logic
-        response = inference_chat_logic(
+
+        return inference_chat_logic(
             chat_history=chat_history_dict,
             security_filter=security_filter,
             enable_query_refinement=request.enable_query_refinement,
             enable_guardrail_checks=request.enable_guardrail_checks,
             enable_suggested_questions=request.enable_suggested_questions,
         )
-        
-        return response
     except Exception:
+        traceback.print_exc()
         return failure_chat_response()
 
 
