@@ -18,6 +18,9 @@ OPTION_QUERY_REFINEMENT = True
 OPTION_GUARDRAIL_CHECKS = True
 OPTION_SUGGESTED_QUESTIONS = True
 OPTION_SECURITY_GROUPS = True
+STATIC_RESPONSES = {
+    "entry": "Hello! I'm your RAG assistant. How can I help you today?",
+}
 
 
 def authenticate_user() -> list[str]:
@@ -78,10 +81,6 @@ def interactive_chat() -> None:
         security_groups = authenticate_user()
     else: # [] means no groups, which will deny all access in DLS filter logic. None means bypass DLS filter (full access).
         security_groups = None
-
-    STATIC_RESPONSES = {
-        "entry": "Hello! I'm your RAG assistant. How can I help you today?",
-    }
 
     chat_history: list[dict[str, str]] = []
 

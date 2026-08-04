@@ -6,13 +6,13 @@ Run with: uvicorn app.backend_server:app --reload
 import os
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from raglib.config import load_env_vars
 from raglib.permissions import build_security_filter
-from raglib.pipeline import inference_chat_logic
+from raglib.pipeline import failure_chat_response, inference_chat_logic
 
 load_env_vars()
 
@@ -146,11 +146,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
         
         return response
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing chat request: {str(e)}"
-        )
+    except Exception:
+        return failure_chat_response()
 
 
 if __name__ == "__main__":
