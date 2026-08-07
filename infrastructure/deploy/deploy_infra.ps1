@@ -46,7 +46,6 @@ $StorageAccount = "st$($Prefix -replace '-','')"
 $SearchService = "srch-$Prefix"
 $FunctionApp = "func-$Prefix"
 $AIServices = "ai-$Prefix"
-$AppInsights = "appi-$Prefix"
 
 Write-Host "`n=== Deployment Plan ===" -ForegroundColor Cyan
 Write-Host "Subscription:    $SubscriptionId"
@@ -100,7 +99,6 @@ $SearchPrincipalId = $armOutput.searchServicePrincipalId.value
 $AIServices = $armOutput.aiServicesName.value
 $FunctionApp = $armOutput.functionAppName.value
 $FunctionPrincipalId = $armOutput.functionAppPrincipalId.value
-$AppInsights = $armOutput.appInsightsName.value
 
 Write-Host "`n=== Resources Created ===" -ForegroundColor Green
 Write-Host "  Storage:      $StorageAccount"
@@ -108,7 +106,6 @@ Write-Host "  Func Storage: $FuncStorageAccount"
 Write-Host "  AI Search:    $SearchService (MI: $SearchPrincipalId)"
 Write-Host "  AI Services:  $AIServices"
 Write-Host "  Function App: $FunctionApp (MI: $FunctionPrincipalId)"
-Write-Host "  App Insights: $AppInsights"
 
 # ============================================
 # STEP 2: RBAC Permissions
@@ -120,7 +117,6 @@ Write-Host $divider -ForegroundColor Cyan
 $StorageScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Storage/storageAccounts/$StorageAccount"
 $SearchScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Search/searchServices/$SearchService"
 $AIScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.CognitiveServices/accounts/$AIServices"
-$AppInsightsScope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Insights/components/$AppInsights"
 
 $currentUserId = (az ad signed-in-user show --query id -o tsv)
 
@@ -128,65 +124,60 @@ $rbacAssigned = @()
 $rbacFailed = @()
 
 # Search MI Roles
-Write-Host "`n[1/11] Search MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
+Write-Host "`n[1/10] Search MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $SearchPrincipalId --role "Storage Blob Data Reader" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Storage Blob Data Reader" }
 else { $rbacFailed += "Search MI -> Storage Blob Data Reader" }
 
-Write-Host "[2/11] Search MI -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
+Write-Host "[2/10] Search MI -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $SearchPrincipalId --role "Storage Blob Data Contributor" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Storage Blob Data Contributor" }
 else { $rbacFailed += "Search MI -> Storage Blob Data Contributor" }
 
-Write-Host "[3/11] Search MI -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
+Write-Host "[3/10] Search MI -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $SearchPrincipalId --role "Cognitive Services OpenAI User" --scope $AIScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Search MI -> Cognitive Services OpenAI User" }
 else { $rbacFailed += "Search MI -> Cognitive Services OpenAI User" }
 
 # Function MI Roles
-Write-Host "[4/11] Function MI -> AI Services (Cognitive Services User)..." -ForegroundColor Yellow
+Write-Host "[4/10] Function MI -> AI Services (Cognitive Services User)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $FunctionPrincipalId --role "Cognitive Services User" --scope $AIScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Cognitive Services User" }
 else { $rbacFailed += "Function MI -> Cognitive Services User" }
 
-Write-Host "[5/11] Function MI -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
+Write-Host "[5/10] Function MI -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $FunctionPrincipalId --role "Search Index Data Reader" --scope $SearchScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Search Index Data Reader" }
 else { $rbacFailed += "Function MI -> Search Index Data Reader" }
 
-Write-Host "[6/11] Function MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
+Write-Host "[6/10] Function MI -> Storage (Blob Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $FunctionPrincipalId --role "Storage Blob Data Reader" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Function MI -> Storage Blob Data Reader" }
 else { $rbacFailed += "Function MI -> Storage Blob Data Reader" }
 
 # Current User Roles
-Write-Host "[7/11] Current User -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
+Write-Host "[7/10] Current User -> Storage (Blob Data Contributor)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $currentUserId --role "Storage Blob Data Contributor" --scope $StorageScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Storage Blob Data Contributor" }
 else { $rbacFailed += "Current User -> Storage Blob Data Contributor" }
 
-Write-Host "[8/11] Current User -> Search (Search Service Contributor)..." -ForegroundColor Yellow
+Write-Host "[8/10] Current User -> Search (Search Service Contributor)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $currentUserId --role "Search Service Contributor" --scope $SearchScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Search Service Contributor" }
 else { $rbacFailed += "Current User -> Search Service Contributor" }
 
-Write-Host "[9/11] Current User -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
+Write-Host "[9/10] Current User -> Search (Search Index Data Reader)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $currentUserId --role "Search Index Data Reader" --scope $SearchScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Search Index Data Reader" }
 else { $rbacFailed += "Current User -> Search Index Data Reader" }
 
-Write-Host "[10/11] Current User -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
+Write-Host "[10/10] Current User -> AI Services (Cognitive Services OpenAI User)..." -ForegroundColor Yellow
 $result = az role assignment create --assignee $currentUserId --role "Cognitive Services OpenAI User" --scope $AIScope --output none 2>&1
 if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Cognitive Services OpenAI User" }
 else { $rbacFailed += "Current User -> Cognitive Services OpenAI User" }
 
-Write-Host "[11/11] Current User -> App Insights (Monitoring Metrics Publisher)..." -ForegroundColor Yellow
-$result = az role assignment create --assignee $currentUserId --role "Monitoring Metrics Publisher" --scope $AppInsightsScope --output none 2>&1
-if ($LASTEXITCODE -eq 0) { $rbacAssigned += "Current User -> Monitoring Metrics Publisher" }
-else { $rbacFailed += "Current User -> Monitoring Metrics Publisher" }
-
 Write-Host "`n=== RBAC Summary ===" -ForegroundColor Green
-Write-Host "  Assigned: $($rbacAssigned.Count)/11"
+Write-Host "  Assigned: $($rbacAssigned.Count)/10"
 if ($rbacFailed.Count -gt 0) {
     Write-Host "  Failed: $($rbacFailed -join ', ')" -ForegroundColor Red
 }
@@ -393,16 +384,6 @@ Write-Host "`n$divider" -ForegroundColor Cyan
 Write-Host "STEP 4: Generating .env File" -ForegroundColor Cyan
 Write-Host $divider -ForegroundColor Cyan
 
-# Get Application Insights connection string
-Write-Host "  Looking up Application Insights..." -ForegroundColor Yellow
-$AppInsightsConnStr = az resource show --resource-group $ResourceGroup --resource-type "Microsoft.Insights/components" --name $AppInsights --query "properties.ConnectionString" -o tsv 2>$null
-if (-not $AppInsightsConnStr) {
-    $AppInsightsConnStr = "<run-after-deployment>"
-    Write-Host "  WARNING: Could not get App Insights connection string" -ForegroundColor Yellow
-} else {
-    Write-Host "  App Insights connection string retrieved" -ForegroundColor Green
-}
-
 $envContent = @"
 # Generated by deploy.ps1 on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 # Prefix: $Prefix | Location: $Location
@@ -452,9 +433,6 @@ DOCUMENTS_FILESYSTEM_NAME='documents'
 EVALUATION_FILESYSTEM_NAME='evaluation'
 EVALUATION_DOCUMENT_NAME='example_golden_dataset.json'
 
-# Application Insights logging
-LOGGING_CONNECTION_STRING='$AppInsightsConnStr'
-
 # Azure Function for DLS (indexer WebApiSkill)
 FUNCTION_APP_NAME='$FunctionApp'
 AZURE_FUNCTION_SECURITY_GROUPS_URL='https://$FunctionApp.azurewebsites.net/api/get_security_groups'
@@ -487,7 +465,6 @@ AI Services:        $AIServices
 Function App:       $FunctionApp
 Function Auth App:  $AppClientId
 User Auth App:      $UserAuthClientId
-App Insights:       $AppInsights
 Models Deployed:    $($modelsDeployed.Count)/$total
 
 === Generated Files ===
