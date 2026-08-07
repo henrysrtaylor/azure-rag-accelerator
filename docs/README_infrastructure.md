@@ -21,7 +21,7 @@ This document lists all Azure resources required to run the RAG solution.
 | Resource | Azure Service | Purpose |
 |----------|---------------|---------|
 | **Security Groups Function** | Azure Functions | DLS custom skill for indexer (WebApiSkill) |
-| **Logging & Monitoring** | Azure Application Insights | Telemetry, custom events, and debugging |
+| **Logging & Monitoring** | Standard Python logging | Terminal, container, and Azure host log collection |
 | **User Authentication** | Microsoft Entra ID | User login and security group membership |
 
 ### Optional Services
@@ -104,16 +104,16 @@ Azure AI Foundry is the unified platform providing all AI capabilities:
 
 ---
 
-### Azure Application Insights
+### Standard Python Logging
 
-**Purpose**: Structured logging and telemetry
+**Purpose**: Timestamped application logging to stdout
 
 **Required for**:
-- Custom event logging via `log_message()`
-- Performance monitoring
-- Error tracking
+- Backend request and failure logging
+- Index and indexer progress logging
+- Evaluation completion logging
 
-**Connection**: Full connection string with InstrumentationKey
+Executable application and infrastructure scripts call `configure_logging()` from `raglib/log.py`. The Azure Function relies on the Azure Functions host to collect its standard Python logs and does not import the application logging module.
 
 ---
 
@@ -159,9 +159,6 @@ EVALUATION_DOCUMENT_NAME=example_golden_dataset.json
 
 # Content Safety (via AI Foundry endpoint)
 AZURE_CONTENT_MODERATOR_ENDPOINT=https://<resource>.cognitiveservices.azure.com/
-
-# Logging
-LOGGING_CONNECTION_STRING=InstrumentationKey=<key>;IngestionEndpoint=...
 
 # Authentication - User Auth App
 AZURE_TENANT_ID=<directory-id>
@@ -254,7 +251,6 @@ PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD=4
 - [ ] Azure AI Search (Standard tier) created
 - [ ] Azure AI Foundry resource with model deployments
 - [ ] ADLS Gen2 account with `documents` filesystem
-- [ ] Application Insights workspace created
 - [ ] Azure Functions app deployed with authentication
 - [ ] **User Auth App Registration** - for MSAL login with groups claim
 - [ ] **Function Auth App Registration** - restricts to Search Service MI

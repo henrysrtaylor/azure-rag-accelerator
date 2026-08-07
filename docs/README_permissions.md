@@ -67,7 +67,6 @@ For each resource in Azure Portal:
 | Azure AI Search | **Search Index Data Reader** | Query index |
 | Azure AI Foundry | **Cognitive Services OpenAI User** | LLM completions, embeddings, content safety |
 | ADLS Gen2 | **Storage Blob Data Reader** | Read evaluation datasets |
-| Application Insights | **Monitoring Metrics Publisher** | Send telemetry |
 
 ### Indexer Scripts → Other Resources
 

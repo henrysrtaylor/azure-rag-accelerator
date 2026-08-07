@@ -10,7 +10,9 @@ This document provides a brief overview of each Python file in the codebase.
 Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and storage access. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
 
 ### `log.py`
-Structured logging to Azure Application Insights. Provides a `log_message()` function that sends custom events with severity levels and additional properties (tags, timestamps) for telemetry and debugging.
+Shared standard-library logging configuration. `configure_logging()` sends timestamped application logs to stdout and suppresses noisy Azure SDK request and authentication logs.
+
+The Azure Function intentionally uses the platform-provided logger instead of importing this module.
 
 ### `azure_ai.py`
 Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Azure AI Foundry for chat completions.

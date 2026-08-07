@@ -16,7 +16,7 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Security: Document-Level Security (DLS) via Entra ID group-based filtering
 - Citations: Automatic reference tracking
 - Query Enhancement: Conversation-aware query refinement and suggested follow-up questions
-- Logging: Azure Application Insights integration
+- Logging: Standard Python logging to stdout for terminal, container, and Azure host collection
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
 - Infrastructure: Azure CLI deployment scripts
 - Data: Load documents into the local directory and send them to Data Lake
@@ -33,7 +33,7 @@ azure-rag-accelerator/
 │   ├── citations.py           # Reference management
 │   ├── enhance.py             # Query refinement & suggestions
 │   ├── config.py              # Azure client factories
-│   ├── log.py                 # Application Insights logging
+│   ├── log.py                 # Logging configuration (stdout)
 │   ├── eval.py                # LLM-as-judge evaluation functions
 │   └── prompts/               # Agent & evaluation prompt templates
 ├── app/                       # Application scripts

@@ -212,7 +212,7 @@ User Query
 Markdown templates loaded via `markdown_loader.py`. Separates prompt content from code for easy editing.
 
 ### Logging (`log.py`)
-Application Insights integration for telemetry. Tracks requests, errors, and custom events.
+Standard Python logging configuration. Executable processes initialize `configure_logging()` for timestamped logs sent to stdout; backend, permissions, index, indexer, and evaluation modules emit the actual log messages. The Azure Function uses standard Python logging without importing the application logging module, allowing the Azure Functions host to capture its logs directly.
 
 ### Environment Setup (`config.py`)
 Centralized Azure client initialization using `DefaultAzureCredential`. Generates consistent naming for indexes and indexers based on project configuration.

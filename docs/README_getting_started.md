@@ -91,6 +91,8 @@ streamlit run app/streamlit_app.py
 
 Open http://localhost:8501
 
+The backend, Streamlit client, CLI client, index setup, indexer setup, and evaluation script initialize standard Python logging to stdout. This produces consistent timestamped application logs while suppressing verbose Azure SDK request logs. The Azure Function does not run this bootstrap; Azure Functions captures its standard Python logging directly.
+
 ---
 
 ## Quick Reference
@@ -116,7 +118,7 @@ Open http://localhost:8501
 | AI Search | `srch-{prefix}` | Vector search with semantic ranking |
 | Storage Account | `st{prefix}` | Document storage |
 | Function App | `func-{prefix}` | Document-level security groups lookup |
-| App Insights | `appi-{prefix}` | Logging and monitoring |
+| Application logs | stdout / Azure host logs | Runtime logging and diagnostics |
 
 All resources are configured with Managed Identity and RBAC permissions. See [README_permissions.md](README_permissions.md) for details.
 
