@@ -9,7 +9,6 @@
     "storageAccountName": "[concat('st', replace(parameters('prefix'), '-', ''))]",
     "funcStorageAccountName": "[concat('st', uniqueString(resourceGroup().id), 'func')]",
     "searchServiceName": "[concat('srch-', parameters('prefix'))]",
-    "appInsightsName": "[concat('appi-', parameters('prefix'))]",
     "aiServicesName": "[concat('ai-', parameters('prefix'))]",
     "functionAppName": "[concat('func-', parameters('prefix'))]",
     "hostingPlanName": "[concat('asp-', parameters('prefix'))]",
@@ -68,16 +67,6 @@
       }
     },
     {
-      "type": "Microsoft.Insights/components",
-      "apiVersion": "2020-02-02",
-      "name": "[variables('appInsightsName')]",
-      "location": "[parameters('location')]",
-      "kind": "web",
-      "properties": {
-        "Application_Type": "web"
-      }
-    },
-    {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2023-05-01",
       "name": "[variables('aiServicesName')]",
@@ -114,8 +103,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('funcStorageAccountName'))]",
-        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
-        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
       ],
       "properties": {
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
@@ -133,14 +121,6 @@
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
               "value": "python"
-            },
-            {
-              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').InstrumentationKey]"
-            },
-            {
-              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
             }
           ]
         },
@@ -194,10 +174,6 @@
     "searchServicePrincipalId": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Search/searchServices', variables('searchServiceName')), '2023-11-01', 'Full').identity.principalId]"
-    },
-    "appInsightsName": {
-      "type": "string",
-      "value": "[variables('appInsightsName')]"
     },
     "aiServicesName": {
       "type": "string",
