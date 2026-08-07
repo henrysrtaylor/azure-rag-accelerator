@@ -5,6 +5,7 @@ and document-level security groups. Configures vector search with HNSW
 algorithm and semantic reranking.
 """
 
+import logging
 import os
 import time
 
@@ -24,17 +25,15 @@ from azure.search.documents.indexes.models import (
 )
 
 from raglib.config import get_search_index_client, get_project_names, load_env_vars
-from raglib.log import log_message
+from raglib.log import configure_logging
 
+logger = logging.getLogger(__name__)
+
+configure_logging()
 load_env_vars()
 
 index_name, semantic_config_name = get_project_names()
 index_client = get_search_index_client()
-
-log_enabled = True
-print_log_enabled = True
-log_tag = "index"
-start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 fields = [
     SearchField(
@@ -134,15 +133,4 @@ index = SearchIndex(
 )
 index_client.create_or_update_index(index)
 
-properties = {
-    'tag': log_tag,
-    'start_timestamp': start_timestamp,
-    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-}
-log_message(
-    should_log=log_enabled,
-    print_message=print_log_enabled,
-    message=f"{index_name} created or updated",
-    level=20,
-    additional_properties=properties
-)
+logger.info("%s created or updated", index_name)

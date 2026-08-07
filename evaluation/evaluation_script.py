@@ -4,6 +4,7 @@ Runs the RAG pipeline against a golden dataset and computes metrics:
 groundedness, relevance, fluency, coherence, F1, and retrieval precision/recall.
 """
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -21,17 +22,17 @@ from raglib.eval import (
     judge_fluency,
     normalize_score,
 )
-from raglib.log import log_message
+from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import evaluation_chat_logic
 
+logger = logging.getLogger(__name__)
+
+configure_logging()
 load_env_vars()
 
 OUTPUT_DIR = Path(__file__).parent / "results"
 
-log_enabled = True
-print_log_enabled = True
-log_tag = "evaluation_metrics"
 start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 # Load from local JSON file
@@ -206,19 +207,9 @@ print(f"\nResults saved to: {results_dir}")
 print(f"  - full_results.json (query, response, ground_truth + metrics)")
 print(f"  - summary.json (aggregated metrics with pass/fail)")
 
-# Log to Application Insights
-properties = {
-    'tag': log_tag,
-    'start_timestamp': start_timestamp,
-    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-    'passed_metrics': passed_count,
-    'total_metrics': len(aggregated_metrics),
-    **aggregated_eval_metrics
-}
-log_message(
-    should_log=log_enabled,
-    print_message=print_log_enabled,
-    message=f"Evaluation completed with {len(results_individual)} examples.",
-    level=20,
-    additional_properties=properties
+logger.info(
+    "Evaluation completed with %d examples; %d/%d metrics passed.",
+    len(results_individual),
+    passed_count,
+    len(aggregated_metrics),
 )

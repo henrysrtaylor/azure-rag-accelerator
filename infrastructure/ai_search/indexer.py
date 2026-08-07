@@ -5,6 +5,7 @@ documents. Includes skills for document extraction, text chunking, embeddings,
 image verbalization, and document-level security group lookup.
 """
 
+import logging
 import os
 import time
 
@@ -35,9 +36,12 @@ from raglib.config import (
     get_project_names,
     load_env_vars,
 )
-from raglib.log import log_message
+from raglib.log import configure_logging
 from raglib.prompts.markdown_loader import markdown_loader
 
+logger = logging.getLogger(__name__)
+
+configure_logging()
 prompt_verbalisation_image = markdown_loader("prompt_verbalisation_image")
 
 load_env_vars()
@@ -48,11 +52,6 @@ indexer_name = f"{index_name}-indexer"
 
 index_client = get_search_index_client()
 indexer_client = get_search_indexer_client()
-
-log_enabled = True
-print_log_enabled = True
-log_tag = "indexer"
-start_timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 container = SearchIndexerDataContainer(
     name=os.getenv("DOCUMENTS_FILESYSTEM_NAME")
@@ -65,18 +64,7 @@ data_source_connection = SearchIndexerDataSourceConnection(
 )
 data_source = indexer_client.create_or_update_data_source_connection(data_source_connection)
 
-properties = {
-    'tag': log_tag,
-    'start_timestamp': start_timestamp,
-    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-}
-log_message(
-    should_log=log_enabled,
-    print_message=print_log_enabled,
-    message=f"{data_source_name} created or updated",
-    level=20,
-    additional_properties=properties
-)
+logger.info("%s created or updated", data_source_name)
 
 skill_document_extraction = DocumentExtractionSkill(
     name="document-extraction-skill",
@@ -241,18 +229,7 @@ skillset = SearchIndexerSkillset(
 )
 indexer_client.create_or_update_skillset(skillset)
 
-properties = {
-    'tag': log_tag,
-    'start_timestamp': start_timestamp,
-    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-}
-log_message(
-    should_log=log_enabled,
-    print_message=print_log_enabled,
-    message=f"{skillset.name} created or updated",
-    level=20,
-    additional_properties=properties
-)
+logger.info("%s created or updated", skillset.name)
 
 indexer_parameters = {
     "configuration": {
@@ -276,18 +253,7 @@ indexer = SearchIndexer(
 )
 indexer_result = indexer_client.create_or_update_indexer(indexer)
 
-properties = {
-    'tag': log_tag,
-    'start_timestamp': start_timestamp,
-    'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-}
-log_message(
-    should_log=log_enabled,
-    print_message=print_log_enabled,
-    message=f"{indexer_name} created or updated",
-    level=20,
-    additional_properties=properties
-)
+logger.info("%s created or updated", indexer_name)
 
 # run indexer and poll for document count to confirm indexing has started
 RUN_INDEXER = True
@@ -303,15 +269,4 @@ if RUN_INDEXER:
         updated_log_message = f"Documents have started loading into the index. Current count: {document_count}."
         INDEXER_RETRY_COUNT -= 1
 
-    properties = {
-        'tag': log_tag,
-        'start_timestamp': start_timestamp,
-        'end_timestamp': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    }
-    log_message(
-        should_log=log_enabled,
-        print_message=print_log_enabled,
-        message=updated_log_message,
-        level=20,
-        additional_properties=properties
-    )
+    logger.info(updated_log_message)

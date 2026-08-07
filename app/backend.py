@@ -3,8 +3,8 @@
 Provides REST endpoints for chat and health checks.
 Run with: uvicorn app.backend_server:app --reload
 """
+import logging
 import os
-import traceback
 from typing import Optional
 
 from fastapi import FastAPI
@@ -12,9 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from raglib.config import load_env_vars
+from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import failure_chat_response, inference_chat_logic
 
+logger = logging.getLogger(__name__)
+
+configure_logging()
 load_env_vars()
 
 app = FastAPI(
@@ -67,6 +71,7 @@ def root() -> dict:
 @app.get("/health_check", tags=["Health"])
 def health_check() -> dict:
     """Health check with environment variable verification."""
+    logger.info("Health check requested")
     try:
         # Check if environment variables are loaded
         required_vars = [
@@ -102,8 +107,7 @@ def health_check() -> dict:
             "EVALUATION_FILESYSTEM_NAME",
             "EVALUATION_DOCUMENT_NAME",
             "STORAGE_DFS_ACCOUNT_URL",
-            "STORAGE_CONNECTION_STRING",
-            "LOGGING_CONNECTION_STRING"
+            "STORAGE_CONNECTION_STRING"
         ]
         missing_vars = [var for var in required_vars if not os.getenv(var)]
         
@@ -130,6 +134,7 @@ def health_check() -> dict:
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
 async def chat(request: ChatRequest) -> ChatResponse:
     """Process a chat request and return RAG-generated response."""
+    logger.info("Chat request received")
     try:
         chat_history_dict = [dict(msg) for msg in request.chat_history]
         security_filter = build_security_filter(request.security_groups)
@@ -142,7 +147,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             enable_suggested_questions=request.enable_suggested_questions,
         )
     except Exception:
-        traceback.print_exc()
+        logger.exception("Chat request failed")
         return failure_chat_response()
 
 
