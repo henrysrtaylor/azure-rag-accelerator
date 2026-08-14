@@ -3,7 +3,8 @@
 raglib - Azure RAG System Library for Azure AI Search and OpenAI
 
 Usage:
-    from raglib.config import load_env_vars, get_search_client
+    from raglib.clients import load_env_vars, get_search_client
+    from raglib.config import config
     from raglib.pipeline import inference_chat_logic
     from raglib.azure_ai import retrieve_documents, send_llm_request
     from raglib.guardrails import guardrails

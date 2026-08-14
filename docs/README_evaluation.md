@@ -64,23 +64,19 @@ Thresholds are defined in `evaluation/eval_config.py`:
 
 ```python
 METRIC_THRESHOLDS = {
-    'groundedness': 0.6,      # 3/5 normalized
-    'relevance': 0.6,
-    'fluency': 0.6,
-    'coherence': 0.6,
-    'f1_score': 0.5,
-    'retrieval_precision_at_1': 0.5,
-    'retrieval_recall_at_5': 0.7,  # Higher - missing docs is worse
+    "groundedness": 0.6,  # 3/5 normalized
+    "relevance": 0.6,
+    "fluency": 0.6,
+    "coherence": 0.6,
+    "f1_score": 0.5,
+    "retrieval_precision_at_1": 0.5,
+    "retrieval_recall_at_5": 0.7,  # Higher - missing docs is worse
 }
 ```
 
-## Environment Variables
+## Judge Model
 
-| Variable | Description |
-|----------|-------------|
-| `AZURE_FOUNDRY_JUDGE_MODEL` | Model deployment for judges (e.g., `gpt-4o-mini`) |
-
-Set in `.env`. The judge model can differ from the main chat model.
+Set `judge_model` in the `Config` dataclass in `raglib/config.py`. The judge model can differ from the main chat model.
 
 ## Running
 

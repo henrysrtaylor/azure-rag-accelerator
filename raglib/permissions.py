@@ -3,14 +3,14 @@
 Builds OData filter expressions from user security groups to restrict
 document access based on Entra ID group membership.
 """
+
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 def build_security_filter(
-    security_groups: list[str] | None,
-    field: str = "security_groups"
+    security_groups: list[str] | None, field: str = "security_groups"
 ) -> str | None:
     """
     Build an OData filter expression from user security groups.
@@ -30,11 +30,11 @@ def build_security_filter(
     if security_groups is None:
         logger.info("[PERMISSIONS] No filter applied - full access")
         return None
-    
+
     if not security_groups:
         logger.warning("[PERMISSIONS] Empty groups list - denying all access")
         return f"{field}/any(g: g eq '__DENY_ALL__')"
-    
+
     groups_str = ",".join(security_groups)
     filter_expr = f"{field}/any(g: search.in(g, '{groups_str}'))"
     logger.info("[PERMISSIONS] Filter applied with %d group(s)", len(security_groups))
