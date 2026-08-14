@@ -20,6 +20,11 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Evaluation: Custom LLM as as judge, script to locally evaluate solution and record metrics based on `data/evaluation/golden_dataset`
 - Infrastructure: Azure CLI deployment scripts
 - Data: Load documents into the local directory and send them to Data Lake
+- Tests: Mocked unit tests covering core RAG behavior without requiring Azure resources
+
+## 📈 Future Roadmap
+- `openai` sdk to replace `azure-ai-inference` to call all Foundry models.
+- OOP updates to functions
 
 ## 📂 Project Structure
 
@@ -32,12 +37,13 @@ azure-rag-accelerator/
 │   ├── permissions.py         # Document-level security
 │   ├── citations.py           # Reference management
 │   ├── enhance.py             # Query refinement & suggestions
-│   ├── config.py              # Azure client factories
+│   ├── config.py              # Typed RAG and model settings
+│   ├── clients.py             # Azure client factories
 │   ├── log.py                 # Logging configuration (stdout)
 │   ├── eval.py                # LLM-as-judge evaluation functions
 │   └── prompts/               # Agent & evaluation prompt templates
 ├── app/                       # Application scripts
-│   ├── backend_server.py      # FastAPI REST API
+│   ├── backend.py             # FastAPI REST API
 │   ├── streamlit_app.py       # Streamlit web UI
 │   └── cli_app.py             # CLI chat client (legacy)
 ├── evaluation/                # RAG evaluation
@@ -67,24 +73,24 @@ These feature flags are owned by each client and sent with every `/chat` request
 
 The API returns one consistent response shape for normal answers, empty input, exit commands, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients only display the response and follow its `save_chat_history` and `end_conversation` values.
 
-Tunable parameters:
+Tunable values in `raglib/config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `PARAMETER_NUMBER_DOC_RETRIEVE` | `5` | Number of documents to retrieve |
-| `PARAMETER_K_NEAREST_NEIGHBORS` | `3` | k for vector search |
-| `PARAMETER_SUGGESTED_QUESTIONS` | `3` | Number of follow-up suggestions |
-| `PARAMETER_CHUNK_SIZE` | `1000` | Document chunk size (indexing) |
-| `PARAMETER_CHUNK_OVERLAP` | `100` | Chunk overlap (indexing) |
+| `number_documents_retrieve` | `5` | Number of documents to retrieve |
+| `k_nearest_neighbors` | `3` | k for vector search |
+| `suggested_questions` | `3` | Number of follow-up suggestions |
+| `chunk_size` | `1000` | Document chunk size (indexing) |
+| `chunk_overlap` | `100` | Chunk overlap (indexing) |
 
 Content safety thresholds (0-7, higher = more permissive):
 
 | Parameter | Default |
 |-----------|---------|
-| `PARAMETER_HATE_GUARDRAIL_THRESHOLD` | `4` |
-| `PARAMETER_SELFHARM_GUARDRAIL_THRESHOLD` | `4` |
-| `PARAMETER_SEXUAL_GUARDRAIL_THRESHOLD` | `4` |
-| `PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD` | `4` |
+| `hate_guardrail_threshold` | `4` |
+| `self_harm_guardrail_threshold` | `4` |
+| `sexual_guardrail_threshold` | `4` |
+| `violence_guardrail_threshold` | `4` |
 
 ## 🚀 Getting Started
 
@@ -92,22 +98,30 @@ See [docs/README_getting_started.md](docs/README_getting_started.md) for full in
 
 **Quick Start:**
 
+Before starting, [Python 3.10+](https://www.python.org/downloads/), the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), and [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
+
 ```bash
 git clone "https://github.com/henrysrtaylor/azure-rag-accelerator.git"
 cd azure-rag-accelerator
-pip install -r requirements.txt
+uv sync
+```
 
+Configure Azure and run the application without activating the environment:
+
+```bash
 # Login to Azure (required for DefaultAzureCredential)
 az login
 
 # Configure .env with Azure resource details
 
 # Terminal 1 - Start backend
-uvicorn app.backend_server:app --reload
+uv run uvicorn app.backend:app --reload
 
 # Terminal 2 - Start frontend
-streamlit run app/streamlit_app.py
+uv run streamlit run app/streamlit_app.py
 ```
+
+Alternatively, activate `.venv` with `.\.venv\Scripts\Activate.ps1` on Windows PowerShell or `source .venv/bin/activate` on macOS/Linux. Once activated, omit the `uv run` prefix from the application commands.
 
 Open http://localhost:8501 in your browser.
 
@@ -124,6 +138,28 @@ DLS restricts search results based on user's Entra ID security groups:
 > **Note:** DLS is selected in the client: set the CLI `OPTION_SECURITY_GROUPS` constant to `False`, or turn off Streamlit's **Authentication (DLS)** toggle, for full file access.
 
 See [docs/README_permissions.md](docs/README_permissions.md) for setup details.
+
+## 🧪 Testing
+
+The unit tests mock Azure service clients, so they do not require deployed resources or an Azure login.
+
+Run the full test suite:
+
+```bash
+uv run pytest
+```
+
+Run a specific test module:
+
+```bash
+uv run pytest tests/test_pipeline.py
+```
+
+Run tests with a terminal coverage report:
+
+```bash
+uv run pytest --cov=raglib --cov=app --cov-report=term-missing
+```
 
 ## 📚 Documentation
 
