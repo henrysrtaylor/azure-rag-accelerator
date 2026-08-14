@@ -1,13 +1,67 @@
 [project]
 name = "raglib"
 version = "0.1.0"
-description = "Azure RAG System Library"
+description = "A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI services. Implements document-level security, content moderation guardrails, query refinement, and citation management. Designed as an accelerator to speed up production RAG deployments."
 requires-python = ">=3.10"
+dependencies = [
+    "python-dotenv==1.2.2",
+    "numpy==2.2.6",
+    "fastapi==0.136.1",
+    "uvicorn==0.46.0",
+    "pydantic==2.13.4",
+    "requests==2.34.0",
+    "azure-ai-contentsafety==1.0.0",
+    "azure-search-documents==12.0.0",
+    "azure-storage-file-datalake>=12.17.0",
+    "streamlit>=1.45.0",
+    "azure-identity==1.25.3",
+    "azure-core==1.41.0",
+    "msal>=1.35.1",
+    "azure-ai-inference==1.0.0b9",
+    "azure-functions==1.15.0",
+    "tqdm>=4.66.0",
+]
+
+[tool.uv]
+index-url = "https://pypi.org/simple"
 
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["raglib*"]
+# Package Configuration
+[tool.hatch.build.targets.wheel]
+packages = ["raglib"]
+
+# Development Dependencies (installed via `uv sync`)
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.4.0",
+]
+
+# Ruff Linter & Formatter Configuration
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade (modernize syntax)
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# Pytest Configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

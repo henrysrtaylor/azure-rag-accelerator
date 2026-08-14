@@ -1,141 +1,36 @@
-"""Azure client configuration and initialization.
+"""Typed configuration for RAG behavior and model selection."""
 
-Provides cached client factories for Azure services (Search, OpenAI, Content Safety,
-storage access) using DefaultAzureCredential for authentication.
-"""
-import os
-from functools import lru_cache
-
-from azure.ai.contentsafety import ContentSafetyClient
-from azure.ai.inference import ChatCompletionsClient
-from azure.identity import ChainedTokenCredential, AzureCliCredential, ManagedIdentityCredential
-from azure.search.documents import SearchClient
-from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
-from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
-from dotenv import load_dotenv
+from dataclasses import dataclass
 
 
-def load_env_vars(path: str | None = None) -> None:
+@dataclass(frozen=True)
+class Config:
+    """Application defaults configured in code rather than environment variables.
+
+    Chunking and retrieval values control Azure AI Search behavior. Guardrail
+    values are minimum Content Safety severity scores that block content.
+    Model values identify the Azure Foundry deployments used by the pipeline,
+    evaluation, and embedding workflows.
     """
-    Load environment variables from a .env file.
 
-    Args:
-        path: Optional path to .env file. Uses default discovery if None.
-    """
-    load_dotenv(path, override=True)
-
-
-@lru_cache(maxsize=1)
-def _get_credential() -> ChainedTokenCredential:
-    """Get cached Azure credential for service authentication."""
-    credential = ChainedTokenCredential(
-        AzureCliCredential(),
-        ManagedIdentityCredential()        
-    )
-    credential.get_token("https://cognitiveservices.azure.com/.default")  # avoid first-call latency or cold start
-    return credential
-
-
-@lru_cache(maxsize=1)
-def get_project_names() -> tuple[str, str]:
-    """
-    Get project-specific names for search index and semantic config.
-
-    Returns:
-        Tuple of (index_name, semantic_config_name).
-    """
-    load_env_vars()
-    project_prefix = os.getenv("AZURE_SEARCH_PROJECT_PREFIX")
-    index_name = f"{project_prefix}-index"
-    semantic_config_name = f"{project_prefix}-default-semantic-config"
-    return index_name, semantic_config_name
-
-@lru_cache(maxsize=1)
-def get_search_index_client() -> SearchIndexClient:
-    """Get cached SearchIndexClient for index management."""
-    load_env_vars()
-    return SearchIndexClient(
-        endpoint=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"),
-        credential=_get_credential()
-    )
+    chunk_size: int = 1000
+    chunk_overlap: int = 100
+    number_documents_retrieve: int = 5
+    k_nearest_neighbors: int = 3
+    suggested_questions: int = 3
+    hate_guardrail_threshold: int = 4
+    self_harm_guardrail_threshold: int = 4
+    sexual_guardrail_threshold: int = 4
+    violence_guardrail_threshold: int = 4
+    large_deployed_model: str = "gpt-5.4"
+    small_deployed_model: str = "gpt-5.4-mini"
+    judge_model: str = "gpt-5.4-mini"
+    embedding_deployed_model: str = "text-embedding-3-large"
+    embedding_dimensions: int = 3072
+    large_model_version: str = "2026-03-05"
+    small_model_version: str = "2026-03-17"
+    embedding_model_version: str = "1"
+    reasoning_effort: str = "low"
 
 
-@lru_cache(maxsize=1)
-def get_search_indexer_client() -> SearchIndexerClient:
-    """Get cached SearchIndexerClient for indexer management."""
-    load_env_vars()
-    return SearchIndexerClient(
-        endpoint=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"),
-        credential=_get_credential()
-    )
-
-
-@lru_cache(maxsize=1)
-def get_search_client() -> SearchClient:
-    """Get cached SearchClient for document search operations."""
-    load_env_vars()
-    index_name, _ = get_project_names()
-    return SearchClient(
-        endpoint=os.getenv("AZURE_SEARCH_SERVICE_ENDPOINT"),
-        index_name=index_name,
-        credential=_get_credential()
-    )
-
-
-@lru_cache(maxsize=4)
-def get_chat_client(deployment_name: str) -> ChatCompletionsClient:
-    """
-    Get cached ChatCompletionsClient for LLM operations.
-    
-    Args:
-        deployment_name: Model deployment name (e.g., 'gpt-5', 'Llama-3-70b').
-    
-    Returns:
-        ChatCompletionsClient configured for the specified deployment.
-    """
-    load_env_vars()
-    base = os.getenv('AZURE_FOUNDRY_ENDPOINT')
-    api_version = os.getenv('AZURE_FOUNDRY_API_VERSION', '2024-06-01')
-    
-    # OpenAI models use /openai/deployments/, others use /models/
-    openai_prefixes = ('gpt-', 'o1', 'o3', 'text-embedding', 'dall-e', 'whisper', 'tts')
-    if deployment_name.lower().startswith(openai_prefixes):
-        endpoint = f"{base}/openai/deployments/{deployment_name}"
-    else:
-        # Serverless/MaaS models (Llama, Mistral, Phi, etc.)
-        endpoint = f"{base}/models/{deployment_name}"
-    
-    return ChatCompletionsClient(
-        endpoint=endpoint,
-        credential=_get_credential(),
-        credential_scopes=["https://cognitiveservices.azure.com/.default"],
-        api_version=api_version
-    )
-
-
-@lru_cache(maxsize=1)
-def get_content_safety_client() -> ContentSafetyClient:
-    """Get cached ContentSafetyClient for content moderation."""
-    load_env_vars()
-    return ContentSafetyClient(
-        endpoint=os.getenv("AZURE_CONTENT_MODERATOR_ENDPOINT"),
-        credential=_get_credential()
-    )
-
-
-def get_storage_file_system_client(file_system_name: str) -> FileSystemClient:
-    """
-    Get an ADLS Gen2 FileSystemClient for the specified filesystem.
-
-    Args:
-        file_system_name: Name of the ADLS Gen2 filesystem.
-
-    Returns:
-        FileSystemClient for the specified filesystem.
-    """
-    load_env_vars()
-    data_lake_service_client = DataLakeServiceClient(
-        account_url=os.getenv("STORAGE_DFS_ACCOUNT_URL"),
-        credential=_get_credential()
-    )
-    return data_lake_service_client.get_file_system_client(file_system_name)
+config = Config()

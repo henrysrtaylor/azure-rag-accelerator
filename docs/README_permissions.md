@@ -183,8 +183,14 @@ skill_security_groups = WebApiSkill(
     auth_resource_id=os.getenv("AZURE_FUNCTION_AUTH_RESOURCE_ID"),  # Enables MI auth
     timeout="PT10S",
     batch_size=1,
-    inputs=[InputFieldMappingEntry(name="document_name", source="/document/metadata_storage_name")],
-    outputs=[OutputFieldMappingEntry(name="security_groups", target_name="security_groups")]
+    inputs=[
+        InputFieldMappingEntry(
+            name="document_name", source="/document/metadata_storage_name"
+        )
+    ],
+    outputs=[
+        OutputFieldMappingEntry(name="security_groups", target_name="security_groups")
+    ],
 )
 ```
 
@@ -280,7 +286,7 @@ The security groups field must be correctly configured:
 SearchField(
     name="security_groups",
     type=SearchFieldDataType.Collection(SearchFieldDataType.String),
-    filterable=True,   # Required for DLS
+    filterable=True,  # Required for DLS
     searchable=False,
 )
 ```
@@ -342,7 +348,7 @@ The CLI application uses MSAL for browser-based login:
 ```python
 app = msal.PublicClientApplication(
     client_id=os.getenv("AZURE_CLIENT_ID"),  # User Auth App
-    authority=f"https://login.microsoftonline.com/{os.getenv('AZURE_TENANT_ID')}"
+    authority=f"https://login.microsoftonline.com/{os.getenv('AZURE_TENANT_ID')}",
 )
 
 result = app.acquire_token_interactive(scopes=["User.Read"])
