@@ -2,6 +2,7 @@
 
 Run with: streamlit run app/streamlit_app.py
 """
+
 import os
 
 import msal
@@ -25,39 +26,37 @@ DEFAULT_SHOW_SUGGESTED_QS = True
 _TITLE = "RAG Assistant"
 _ICON = "💬"
 
+
 def authenticate_user() -> list[str]:
     """Authenticate user via MSAL and extract security groups."""
     client_id = os.getenv("AZURE_CLIENT_ID")
     tenant_id = os.getenv("AZURE_TENANT_ID")
     authority = f"https://login.microsoftonline.com/{tenant_id}"
-    
+
     app = msal.PublicClientApplication(client_id, authority=authority)
     scopes = ["User.Read"]
-    
+
     accounts = app.get_accounts()
     result = None
     if accounts:
         result = app.acquire_token_silent(scopes, account=accounts[0])
-    
+
     if not result:
         result = app.acquire_token_interactive(scopes=scopes)
-    
+
     if "error" in result:
-        raise Exception(f"Authentication failed: {result.get('error_description', result.get('error'))}")
-    
+        error = result.get("error_description", result.get("error"))
+        raise Exception(f"Authentication failed: {error}")
+
     id_token_claims = result.get("id_token_claims", {})
     groups = id_token_claims.get("groups", [])
     user_name = id_token_claims.get("name", "Unknown")
-    
+
     return groups, user_name
 
 
 # Page config - hide deploy button via CSS
-st.set_page_config(
-    page_title=_TITLE, 
-    page_icon=_ICON, 
-    layout="centered"
-)
+st.set_page_config(page_title=_TITLE, page_icon=_ICON, layout="centered")
 
 # Base CSS - hide deploy button + right-align user messages
 base_css = """
@@ -67,7 +66,8 @@ base_css = """
     [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
         flex-direction: row-reverse;
     }
-    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) [data-testid="stMarkdownContainer"] {
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+    [data-testid="stMarkdownContainer"] {
         text-align: right;
     }
     </style>
@@ -108,11 +108,9 @@ with st.sidebar:
     disabled = st.session_state.authenticated
     if disabled:
         st.caption("*Reload page to change*")
-    
+
     st.session_state.opt_auth = st.toggle(
-        "Authentication (DLS)", 
-        value=st.session_state.opt_auth, 
-        disabled=disabled
+        "Authentication (DLS)", value=st.session_state.opt_auth, disabled=disabled
     )
     st.session_state.opt_query_refinement = st.toggle(
         "Query Refinement",
@@ -120,31 +118,27 @@ with st.sidebar:
         disabled=disabled,
     )
     st.session_state.opt_guardrails = st.toggle(
-        "Guardrail Checks", 
-        value=st.session_state.opt_guardrails, 
-        disabled=disabled
+        "Guardrail Checks", value=st.session_state.opt_guardrails, disabled=disabled
     )
     st.session_state.opt_suggested_questions = st.toggle(
         "Generate Suggested Questions",
         value=st.session_state.opt_suggested_questions,
         disabled=disabled,
     )
-    
+
     st.divider()
-    
+
     # Display options - always editable
     st.subheader("Display Options")
     st.session_state.opt_references = st.toggle(
-        "Show References", 
-        value=st.session_state.opt_references
+        "Show References", value=st.session_state.opt_references
     )
     st.session_state.opt_suggested_qs = st.toggle(
-        "Show Suggested Questions", 
-        value=st.session_state.opt_suggested_qs
+        "Show Suggested Questions", value=st.session_state.opt_suggested_qs
     )
-    
+
     st.divider()
-    
+
     # User info (after auth)
     if st.session_state.user_name:
         st.write(f"**User:** {st.session_state.user_name}")
@@ -156,7 +150,7 @@ with st.sidebar:
                     st.code(group_id, language=None)
         elif st.session_state.opt_auth:
             st.warning("No groups found. Check App Registration token config.")
-    
+
     if st.button("🗑️ Clear Chat"):
         st.session_state.messages = []
         st.rerun()
@@ -189,15 +183,27 @@ if not st.session_state.messages:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        if st.session_state.opt_references and "references" in message and message["references"]:
+        if (
+            st.session_state.opt_references
+            and "references" in message
+            and message["references"]
+        ):
             with st.expander("📚 References"):
                 for ref in message["references"]:
                     st.markdown(f"**[{ref['id']}]** {ref['text']}")
-        if st.session_state.opt_suggested_qs and "suggested_questions" in message and message["suggested_questions"]:
+        if (
+            st.session_state.opt_suggested_qs
+            and "suggested_questions" in message
+            and message["suggested_questions"]
+        ):
             with st.expander("💡 Suggested Questions"):
                 for i, sq in enumerate(message["suggested_questions"]):
-                    if st.button(sq['text'], key=f"sq_hist_{id(message)}_{i}", use_container_width=True):
-                        st.session_state.pending_question = sq['text']
+                    if st.button(
+                        sq["text"],
+                        key=f"sq_hist_{id(message)}_{i}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.pending_question = sq["text"]
                         st.rerun()
 
 # Chat input - check for pending question from clicked suggestion
@@ -219,13 +225,20 @@ if prompt:
                     for message in st.session_state.messages[-12:]
                 ] + [{"role": "user", "content": prompt}]
 
-                response = requests.post(f"{API_BASE_URL}/chat", json={
-                    "chat_history": chat_history,
-                    "security_groups": st.session_state.security_groups,
-                    "enable_query_refinement": st.session_state.opt_query_refinement,
-                    "enable_guardrail_checks": st.session_state.opt_guardrails,
-                    "enable_suggested_questions": st.session_state.opt_suggested_questions,
-                })
+                response = requests.post(
+                    f"{API_BASE_URL}/chat",
+                    json={
+                        "chat_history": chat_history,
+                        "security_groups": st.session_state.security_groups,
+                        "enable_query_refinement": (
+                            st.session_state.opt_query_refinement
+                        ),
+                        "enable_guardrail_checks": st.session_state.opt_guardrails,
+                        "enable_suggested_questions": (
+                            st.session_state.opt_suggested_questions
+                        ),
+                    },
+                )
                 response.raise_for_status()
                 chat_response = response.json()
 
@@ -243,20 +256,24 @@ if prompt:
                 if st.session_state.opt_suggested_qs and suggested_questions:
                     with st.expander("💡 Suggested Questions"):
                         for i, sq in enumerate(suggested_questions):
-                            if st.button(sq['text'], key=f"sq_new_{i}", use_container_width=True):
-                                st.session_state.pending_question = sq['text']
+                            if st.button(
+                                sq["text"], key=f"sq_new_{i}", use_container_width=True
+                            ):
+                                st.session_state.pending_question = sq["text"]
                                 st.rerun()
 
                 if chat_response.get("save_chat_history", True):
-                    st.session_state.messages.extend([
-                        {"role": "user", "content": prompt},
-                        {
-                            "role": "assistant",
-                            "content": answer,
-                            "references": references,
-                            "suggested_questions": suggested_questions,
-                        },
-                    ])
+                    st.session_state.messages.extend(
+                        [
+                            {"role": "user", "content": prompt},
+                            {
+                                "role": "assistant",
+                                "content": answer,
+                                "references": references,
+                                "suggested_questions": suggested_questions,
+                            },
+                        ]
+                    )
 
                 if chat_response.get("end_conversation", False):
                     st.session_state.messages = []

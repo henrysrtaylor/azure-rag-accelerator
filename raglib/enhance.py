@@ -1,6 +1,7 @@
 """
 Query enhancement utilities: refinement and suggested questions.
 """
+
 import re
 import uuid
 
@@ -10,6 +11,7 @@ from raglib.prompts.markdown_loader import markdown_loader
 
 # Load prompts
 prompt_query_refinement = markdown_loader("prompt_query_refinement")
+
 
 ###
 # Functions for query refinement and suggested questions generation
@@ -23,18 +25,20 @@ def query_refinement(messages: list, deployment: str) -> str:
     )
 
     query_refinement_messages = [
-        {"role": "system", "content": prompt_query_refinement + "\n##########\n" + message_content + "\n##########"}
+        {
+            "role": "system",
+            "content": prompt_query_refinement
+            + "\n##########\n"
+            + message_content
+            + "\n##########",
+        }
     ]
 
-    return send_llm_request(
-        deployment,
-        query_refinement_messages
-    ).strip()
+    return send_llm_request(deployment, query_refinement_messages).strip()
 
 
 def generate_suggested_questions(
-    messages: list[dict[str, str]],
-    documents_joined: str
+    messages: list[dict[str, str]], documents_joined: str
 ) -> list[dict[str, str]]:
     """
     Generate follow-up questions based on conversation and retrieved documents.
@@ -50,20 +54,27 @@ def generate_suggested_questions(
         "prompt_suggested_questions",
         number_suggested_questions=config.suggested_questions,
     )
-    message_content = "Context:\n" + documents_joined + "\n\nConversation History:" + "\n".join(
-        [f"{m['role']}: {m['content']}" for m in messages if m["role"] != "system"]
+    message_content = (
+        "Context:\n"
+        + documents_joined
+        + "\n\nConversation History:"
+        + "\n".join(
+            [f"{m['role']}: {m['content']}" for m in messages if m["role"] != "system"]
+        )
     )
 
     generate_suggested_questions_messages = [
-        {"role": "system", "content": prompt_suggested_questions + "\n\n" + message_content}
+        {
+            "role": "system",
+            "content": prompt_suggested_questions + "\n\n" + message_content,
+        }
     ]
 
     answer = send_llm_request(
-        config.large_deployed_model,
-        generate_suggested_questions_messages
+        config.large_deployed_model, generate_suggested_questions_messages
     ).strip()
 
-    pattern_match = r'\[([^\[\]]*?\?)\]'
+    pattern_match = r"\[([^\[\]]*?\?)\]"
     matches = re.findall(pattern_match, answer)
 
     if not matches:

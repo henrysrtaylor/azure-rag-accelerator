@@ -39,6 +39,7 @@ def test_retrieve_documents_passes_filter_and_combines_title_chunks(
     assert search_arguments["top"] == 5
     assert search_arguments["vector_queries"][0].k_nearest_neighbors == 3
 
+
 def test_send_llm_request_converts_roles_and_strips_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

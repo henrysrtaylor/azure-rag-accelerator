@@ -3,9 +3,9 @@
 Provides REST endpoints for chat and health checks.
 Run with: uvicorn app.backend_server:app --reload
 """
+
 import logging
 import os
-from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,8 +23,10 @@ load_env_vars()
 
 app = FastAPI(
     title="RAG Chat API",
-    description="API for RAG-based chat interactions with guardrails and query refinement",
-    version="1.0.0"
+    description=(
+        "API for RAG-based chat interactions with guardrails and query refinement"
+    ),
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -38,28 +40,54 @@ app.add_middleware(
 
 class Message(BaseModel):
     """Chat message with role and content."""
+
     role: str = Field(..., description="Role of the message sender (user/assistant)")
     content: str = Field(..., description="Content of the message")
 
 
 class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
-    chat_history: list[Message] = Field(..., description="List of previous chat messages")
-    security_groups: Optional[list[str]] = Field(default=None, description="User security groups for DLS filtering")
-    enable_query_refinement: bool = Field(..., description="Refine the latest user query before retrieval")
-    enable_guardrail_checks: bool = Field(..., description="Validate the latest user message before retrieval")
-    enable_suggested_questions: bool = Field(..., description="Generate follow-up questions")
+
+    chat_history: list[Message] = Field(
+        ..., description="List of previous chat messages"
+    )
+    security_groups: list[str] | None = Field(
+        default=None, description="User security groups for DLS filtering"
+    )
+    enable_query_refinement: bool = Field(
+        ..., description="Refine the latest user query before retrieval"
+    )
+    enable_guardrail_checks: bool = Field(
+        ..., description="Validate the latest user message before retrieval"
+    )
+    enable_suggested_questions: bool = Field(
+        ..., description="Generate follow-up questions"
+    )
 
 
 class ChatResponse(BaseModel):
     """Response body for chat endpoint."""
-    assistant_message: Message = Field(..., description="The assistant's response message")
-    suggested_questions: list = Field(default=[], description="List of suggested follow-up questions")
+
+    assistant_message: Message = Field(
+        ..., description="The assistant's response message"
+    )
+    suggested_questions: list = Field(
+        default=[], description="List of suggested follow-up questions"
+    )
     references: list = Field(default=[], description="List of citation references")
-    guardrail_triggered: bool = Field(default=False, description="Whether a guardrail handled the request")
-    guardrail_type: Optional[str] = Field(default=None, description="Type of triggered guardrail")
-    save_chat_history: bool = Field(default=True, description="Whether clients should persist this turn")
-    end_conversation: bool = Field(default=False, description="Whether an interactive client should end the conversation")
+    guardrail_triggered: bool = Field(
+        default=False, description="Whether a guardrail handled the request"
+    )
+    guardrail_type: str | None = Field(
+        default=None, description="Type of triggered guardrail"
+    )
+    save_chat_history: bool = Field(
+        default=True, description="Whether clients should persist this turn"
+    )
+    end_conversation: bool = Field(
+        default=False,
+        description="Whether an interactive client should end the conversation",
+    )
 
 
 @app.get("/", tags=["Health"])
@@ -91,28 +119,25 @@ def health_check() -> dict:
             "EVALUATION_FILESYSTEM_NAME",
             "EVALUATION_DOCUMENT_NAME",
             "STORAGE_DFS_ACCOUNT_URL",
-            "STORAGE_CONNECTION_STRING"
+            "STORAGE_CONNECTION_STRING",
         ]
         missing_vars = [var for var in required_vars if not os.getenv(var)]
-        
+
         if missing_vars:
             return {
                 "status": "unhealthy",
                 "message": f"Missing environment variables: {', '.join(missing_vars)}",
                 "missing_count": len(missing_vars),
-                "total_required": len(required_vars)
+                "total_required": len(required_vars),
             }
-        
+
         return {
             "status": "healthy",
             "environment": "configured",
-            "variables_loaded": len(required_vars)
+            "variables_loaded": len(required_vars),
         }
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
 
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
@@ -137,4 +162,5 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -26,9 +26,9 @@ def test_inference_returns_control_response_before_rag(
         [{"role": "user", "content": query}],
     )
 
-    assert result["assistant_message"]["content"] == pipeline.CHAT_RESPONSES[
-        response_key
-    ]
+    assert (
+        result["assistant_message"]["content"] == pipeline.CHAT_RESPONSES[response_key]
+    )
     assert result["end_conversation"] is end_conversation
     assert result["save_chat_history"] is False
     base_chat_logic.assert_not_called()
@@ -42,9 +42,7 @@ def test_base_chat_logic_builds_answer_references_and_suggestions(
         "query_refinement",
         lambda history, deployment: "refined query",
     )
-    retrieve_documents = Mock(
-        return_value={"Guide": {"documents": "Relevant context"}}
-    )
+    retrieve_documents = Mock(return_value={"Guide": {"documents": "Relevant context"}})
     monkeypatch.setattr(pipeline, "retrieve_documents", retrieve_documents)
     monkeypatch.setattr(
         pipeline,
@@ -84,7 +82,11 @@ def test_base_chat_logic_builds_answer_references_and_suggestions(
 def test_model_guardrail_removes_context_references_and_suggestions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(pipeline, "query_refinement", lambda history, deployment: "query")
+    monkeypatch.setattr(
+        pipeline,
+        "query_refinement",
+        lambda history, deployment: "query",
+    )
     monkeypatch.setattr(
         pipeline,
         "retrieve_documents",
@@ -92,7 +94,11 @@ def test_model_guardrail_removes_context_references_and_suggestions(
             "Guide": {"documents": "Sensitive model context"}
         },
     )
-    monkeypatch.setattr(pipeline, "send_llm_request", lambda deployment, messages: "blocked")
+    monkeypatch.setattr(
+        pipeline,
+        "send_llm_request",
+        lambda deployment, messages: "blocked",
+    )
     monkeypatch.setattr(
         pipeline,
         "guardrails",
@@ -108,12 +114,12 @@ def test_model_guardrail_removes_context_references_and_suggestions(
         [{"role": "user", "content": "question"}],
     )
 
-    assert result["assistant_message"]["content"] == pipeline.CHAT_RESPONSES[
-        "inappropriate_text"
-    ]
+    assert (
+        result["assistant_message"]["content"]
+        == pipeline.CHAT_RESPONSES["inappropriate_text"]
+    )
     assert result["references"] == []
     assert result["suggested_questions"] == []
     assert result["document_context"] == ""
     assert result["save_chat_history"] is False
     suggestions.assert_not_called()
-

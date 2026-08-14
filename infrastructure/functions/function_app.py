@@ -11,10 +11,11 @@ Output: ["group-a", "group-b"] (array for index)
 Deploy to Azure Functions, then add the skill to your indexer.
 """
 
-import azure.functions as func
 import json
 import logging
 from pathlib import Path
+
+import azure.functions as func
 
 app = func.FunctionApp()
 
@@ -22,18 +23,22 @@ app = func.FunctionApp()
 # In production, replace with Cosmos DB lookup
 _SECURITY_GROUPS_FILE = Path(__file__).parent / "document_security_groups.json"
 
+
 def _load_document_groups() -> dict:
     """Load document -> groups mapping from JSON file."""
     if _SECURITY_GROUPS_FILE.exists():
-        with open(_SECURITY_GROUPS_FILE, "r", encoding="utf-8") as f:
+        with open(_SECURITY_GROUPS_FILE, encoding="utf-8") as f:
             return json.load(f)
     return {}
+
 
 # Cache at module level - loaded once at startup
 _DOCUMENT_GROUPS = _load_document_groups()
 
 
-@app.route(route="health", methods=[func.HttpMethod.GET], auth_level=func.AuthLevel.ANONYMOUS)
+@app.route(
+    route="health", methods=[func.HttpMethod.GET], auth_level=func.AuthLevel.ANONYMOUS
+)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
     """
     Health check endpoint with environment variable verification.
@@ -44,13 +49,13 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     Returns:
         JSON response with health status.
     """
-    logging.info('Health check request received.')
+    logging.info("Health check request received.")
 
     health_status = {
         "fromPipeline": True,
         "status": "healthy",
         "health_endpoint_response": True,
-        "security_file_loaded": _SECURITY_GROUPS_FILE.exists()
+        "security_file_loaded": _SECURITY_GROUPS_FILE.exists(),
     }
 
     status_code = 200 if health_status["status"] == "healthy" else 503
@@ -58,11 +63,13 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(
         json.dumps(health_status, indent=2),
         mimetype="application/json",
-        status_code=status_code
+        status_code=status_code,
     )
 
 
-@app.route(route="get_security_groups", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+@app.route(
+    route="get_security_groups", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS
+)
 def get_security_groups(req: func.HttpRequest) -> func.HttpResponse:
     """
     Custom skill endpoint for Azure AI Search indexer.
@@ -83,7 +90,7 @@ def get_security_groups(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(
             json.dumps({"error": "Invalid JSON"}),
             status_code=400,
-            mimetype="application/json"
+            mimetype="application/json",
         )
 
     values = body.get("values", [])
@@ -99,15 +106,10 @@ def get_security_groups(req: func.HttpRequest) -> func.HttpResponse:
         if not security_groups:
             logging.warning(f"No security groups found for document: {document_name}")
 
-        results.append({
-            "recordId": record_id,
-            "data": {
-                "security_groups": security_groups
-            }
-        })
+        results.append(
+            {"recordId": record_id, "data": {"security_groups": security_groups}}
+        )
 
     return func.HttpResponse(
-        json.dumps({"values": results}),
-        status_code=200,
-        mimetype="application/json"
+        json.dumps({"values": results}), status_code=200, mimetype="application/json"
     )

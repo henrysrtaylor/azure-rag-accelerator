@@ -18,6 +18,7 @@ def test_precision_recall_at_k(
 ) -> None:
     assert precision_recall_at_k(retrieved, ground_truth, k) == expected
 
+
 def test_f1_score_partial_overlap() -> None:
     assert f1_score("quick fox", "quick brown fox") == pytest.approx(0.8)
 
