@@ -9,7 +9,8 @@ from azure.ai.contentsafety.models import AnalyzeTextOptions, AnalyzeTextOutputT
 from azure.core.rest import HttpRequest
 
 from raglib.azure_ai import send_llm_request
-from raglib.config import get_content_safety_client
+from raglib.clients import get_content_safety_client
+from raglib.config import config
 from raglib.prompts.markdown_loader import markdown_loader
 
 prompt_guardrail_ontopic = markdown_loader("prompt_guardrail_ontopic")
@@ -93,16 +94,12 @@ def _is_content_moderation_detected(text: str) -> bool:
     """
     text_moderation_results = moderate_content(text)
     
-    hate_guardrail_threshold = int(os.getenv("PARAMETER_HATE_GUARDRAIL_THRESHOLD", "4"))
-    selfharm_guardrail_threshold = int(os.getenv("PARAMETER_SELFHARM_GUARDRAIL_THRESHOLD", "4"))
-    sexual_guardrail_threshold = int(os.getenv("PARAMETER_SEXUAL_GUARDRAIL_THRESHOLD", "4"))
-    violence_guardrail_threshold = int(os.getenv("PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD", "4"))
     
     return (
-        text_moderation_results['hate'] >= hate_guardrail_threshold or
-        text_moderation_results['self_harm'] >= selfharm_guardrail_threshold or
-        text_moderation_results['sexual'] >= sexual_guardrail_threshold or
-        text_moderation_results['violence'] >= violence_guardrail_threshold
+        text_moderation_results['hate'] >= config.hate_guardrail_threshold or
+        text_moderation_results['self_harm'] >= config.self_harm_guardrail_threshold or
+        text_moderation_results['sexual'] >= config.sexual_guardrail_threshold or
+        text_moderation_results['violence'] >= config.violence_guardrail_threshold
     )
 
 
@@ -136,7 +133,7 @@ def _run_guardrails(query: str, check_prompt_and_topic: bool) -> dict[str, bool]
         }
 
     prompt_injection_detected = detect_jailbreak(query)
-    off_topic_detected = _is_off_topic(query, os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"))
+    off_topic_detected = _is_off_topic(query, config.large_deployed_model)
 
     return {
         "content_moderation_detected": content_moderation_detected,

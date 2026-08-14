@@ -1,17 +1,15 @@
 """
 Query enhancement utilities: refinement and suggested questions.
 """
-import os
 import re
 import uuid
 
 from raglib.azure_ai import send_llm_request
+from raglib.config import config
 from raglib.prompts.markdown_loader import markdown_loader
 
 # Load prompts
 prompt_query_refinement = markdown_loader("prompt_query_refinement")
-number_suggested_questions = int(os.getenv('PARAMETER_SUGGESTED_QUESTIONS', '3'))
-prompt_suggested_questions = markdown_loader("prompt_suggested_questions", number_suggested_questions=number_suggested_questions)
 
 ###
 # Functions for query refinement and suggested questions generation
@@ -48,6 +46,10 @@ def generate_suggested_questions(
     Returns:
         List of dicts with 'id' (UUID) and 'text' (question) for each suggestion.
     """
+    prompt_suggested_questions = markdown_loader(
+        "prompt_suggested_questions",
+        number_suggested_questions=config.suggested_questions,
+    )
     message_content = "Context:\n" + documents_joined + "\n\nConversation History:" + "\n".join(
         [f"{m['role']}: {m['content']}" for m in messages if m["role"] != "system"]
     )
@@ -57,7 +59,7 @@ def generate_suggested_questions(
     ]
 
     answer = send_llm_request(
-        os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"),
+        config.large_deployed_model,
         generate_suggested_questions_messages
     ).strip()
 

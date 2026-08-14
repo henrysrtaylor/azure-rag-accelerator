@@ -8,10 +8,10 @@ LLM judges load prompts from raglib/prompts/evaluation/ and return
 structured scores (1-5) with reasoning.
 """
 import json
-import os
 from typing import Optional
 
 from raglib.azure_ai import send_llm_request
+from raglib.config import config
 from raglib.prompts.markdown_loader import markdown_loader
 
 # Evaluation metrics
@@ -87,7 +87,7 @@ def _call_judge(system_prompt: str, user_content: str) -> dict:
         Dict with 'score' (1-5) and 'reasoning' keys.
         Returns {'score': None, 'reasoning': 'Error: ...'} on failure.
     """
-    deployment = os.getenv("AZURE_FOUNDRY_JUDGE_MODEL", "gpt-5.4-mini")
+    deployment = config.judge_model
     
     messages = [
         {"role": "system", "content": system_prompt},

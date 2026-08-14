@@ -3,13 +3,13 @@
 Provides functions for document retrieval via Azure AI Search (hybrid search)
 and LLM interactions via Azure AI Inference (chat completions).
 """
-import os
 from typing import Optional
 
 from azure.ai.inference.models import UserMessage, SystemMessage, AssistantMessage
 from azure.search.documents.models import VectorizableTextQuery
 
-from raglib.config import get_project_names, get_search_client, get_chat_client
+from raglib.clients import get_chat_client, get_project_names, get_search_client
+from raglib.config import config
 
 
 def retrieve_documents(
@@ -28,11 +28,9 @@ def retrieve_documents(
     """
     _, semantic_config_name = get_project_names()
     search_client = get_search_client()
-    number_doc_retrieved = int(os.getenv("PARAMETER_NUMBER_DOC_RETRIEVE", "5"))
-    k_nearest_neighbors = int(os.getenv("PARAMETER_K_NEAREST_NEIGHBORS", "3"))
     
     vector_query = VectorizableTextQuery(text = text_query,
-                                        k_nearest_neighbors=k_nearest_neighbors,             
+                                        k_nearest_neighbors=config.k_nearest_neighbors,
                                         fields = "content_embedding",   
                                         exhaustive = False)
     
@@ -46,7 +44,7 @@ def retrieve_documents(
         semantic_configuration_name=semantic_config_name,  # use your semantic config
         select=["content_text", "document_title", "document_date"],
         filter=security_filter,  # Apply document-level security filter
-        top=number_doc_retrieved
+        top=config.number_documents_retrieve
     )
     
     # process results to combine chunks by title and page number
@@ -87,7 +85,7 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     
     # reasoning_effort: For reasoning models (gpt-5, o3), controls thinking depth.
     # Ignored for non-reasoning models (gpt-5-mini).
-    effort = os.getenv("AZURE_FOUNDRY_REASONING_EFFORT", "low")
+    effort = config.reasoning_effort
     
     response = chat_client.complete(
         messages=typed_messages,
