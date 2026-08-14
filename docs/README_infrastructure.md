@@ -69,7 +69,9 @@ Azure AI Foundry is the unified platform providing all AI capabilities:
 - Text analysis for hate, violence, sexual, self-harm categories
 - Prompt injection / jailbreak detection
 
-**API Version**: `2024-08-01-preview` or later (for reasoning models)
+**Application inference API**: OpenAI v1 at `/openai/v1/`. The application uses implicit versioning and does not pass a dated `api-version`. Chat Completions supports cross-provider Foundry deployments that implement the OpenAI v1 schema.
+
+`AZURE_FOUNDRY_API_VERSION` remains available for infrastructure components such as Azure AI Search skills that still require a dated API version.
 
 ---
 
@@ -137,7 +139,7 @@ RAG behavior, model deployments, embedding dimensions, and guardrail thresholds 
 ```bash
 # Azure AI Foundry
 AZURE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com/
-AZURE_FOUNDRY_API_VERSION=2024-08-01-preview
+AZURE_FOUNDRY_API_VERSION=2025-01-01-preview  # Search skillset calls only
 
 # Azure AI Search
 AZURE_SEARCH_SERVICE_ENDPOINT=https://<service>.search.windows.net/

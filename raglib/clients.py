@@ -4,16 +4,17 @@ import os
 from functools import lru_cache
 
 from azure.ai.contentsafety import ContentSafetyClient
-from azure.ai.inference import ChatCompletionsClient
 from azure.identity import (
     AzureCliCredential,
     ChainedTokenCredential,
     ManagedIdentityCredential,
+    get_bearer_token_provider,
 )
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 from dotenv import load_dotenv
+from openai import OpenAI
 
 
 def load_env_vars(path: str | None = None) -> None:
@@ -72,31 +73,18 @@ def get_search_client() -> SearchClient:
     )
 
 
-@lru_cache(maxsize=4)
-def get_chat_client(deployment_name: str) -> ChatCompletionsClient:
-    """Get a cached Foundry chat-completions client for a deployment."""
+@lru_cache(maxsize=1)
+def get_chat_client() -> OpenAI:
+    """Get a cached OpenAI v1 client for Microsoft Foundry models."""
     load_env_vars()
-    base = os.getenv("AZURE_FOUNDRY_ENDPOINT")
-    api_version = os.getenv("AZURE_FOUNDRY_API_VERSION", "2024-06-01")
-    openai_prefixes = (
-        "gpt-",
-        "o1",
-        "o3",
-        "text-embedding",
-        "dall-e",
-        "whisper",
-        "tts",
+    endpoint = os.environ["AZURE_FOUNDRY_ENDPOINT"].rstrip("/")
+    token_provider = get_bearer_token_provider(
+        _get_credential(),
+        "https://ai.azure.com/.default",
     )
-    if deployment_name.lower().startswith(openai_prefixes):
-        endpoint = f"{base}/openai/deployments/{deployment_name}"
-    else:
-        endpoint = f"{base}/models/{deployment_name}"
-
-    return ChatCompletionsClient(
-        endpoint=endpoint,
-        credential=_get_credential(),
-        credential_scopes=["https://cognitiveservices.azure.com/.default"],
-        api_version=api_version,
+    return OpenAI(
+        base_url=f"{endpoint}/openai/v1/",
+        api_key=token_provider,
     )
 
 
