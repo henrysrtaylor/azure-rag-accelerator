@@ -7,7 +7,10 @@ This document provides a brief overview of each Python file in the codebase.
 ## Core RAG Library (`raglib/`)
 
 ### `config.py`
-Environment configuration and Azure client initialization. Loads environment variables from `.env` and creates cached SDK clients for Azure AI Search, Azure AI Foundry (LLM, embeddings, content safety), and storage access. All clients authenticate using `DefaultAzureCredential` (Managed Identity in Azure, Azure CLI locally).
+Typed application settings for chunking, retrieval, model deployments, embeddings, reasoning effort, and guardrail thresholds.
+
+### `clients.py`
+Environment loading and cached Azure client initialization. Creates Azure AI Search, Content Safety, storage, and OpenAI clients. The OpenAI client uses the Microsoft Foundry `/openai/v1/` endpoint with an automatically refreshed Entra ID bearer token.
 
 ### `log.py`
 Shared standard-library logging configuration. `configure_logging()` sends timestamped application logs to stdout and suppresses noisy Azure SDK request and authentication logs.
@@ -15,7 +18,7 @@ Shared standard-library logging configuration. `configure_logging()` sends times
 The Azure Function intentionally uses the platform-provided logger instead of importing this module.
 
 ### `azure_ai.py`
-Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Azure AI Foundry for chat completions.
+Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Microsoft Foundry model deployments through the stable OpenAI SDK and v1 Chat Completions API.
 
 ### `pipeline.py`
 Main chat orchestration logic. `base_chat_logic()` coordinates the full RAG pipeline: query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. `inference_chat_logic()` applies user guardrails before retrieval and returns whether the client should retain the turn. `evaluation_chat_logic()` is a simplified version for testing.
@@ -43,7 +46,7 @@ Markdown template management. Loads `.md` files from the prompts folder with sup
 
 ## Applications (`app/`)
 
-### `backend_server.py`
+### `backend.py`
 FastAPI REST API server. Exposes `/chat` for RAG interactions, user and model guardrails, empty-message and exit-command responses, and the history-save decision; `/health_check` provides monitoring. Handles request/response serialization and security group passthrough.
 
 ### `streamlit_app.py`

@@ -184,7 +184,9 @@ All resources are configured with Managed Identity and RBAC permissions. See [RE
 
 ## Configuration
 
-The deployment script outputs a `.env` file with all required configuration. Key settings:
+The deployment script outputs a `.env` file with Azure resource and authentication configuration. RAG behavior and model deployment names are defined in `raglib/config.py`. Application model calls use the OpenAI SDK with the Foundry `/openai/v1/` endpoint and Entra ID authentication.
+
+Key environment settings:
 
 ```env
 AZURE_FOUNDRY_ENDPOINT=https://ai-{prefix}.services.ai.azure.com

@@ -32,7 +32,7 @@ This document describes the end-to-end flow of the RAG solution from user input 
 - Configurable toggles for auth, guardrails, references, suggested questions
 - Displays response with expandable citations and suggestions
 
-### 2. REST API (`backend_server.py`)
+### 2. REST API (`backend.py`)
 - FastAPI server exposing `/chat` endpoint
 - Receives JSON request with chat history and options
 - Security groups passed directly in request body
@@ -93,7 +93,7 @@ PlaceholderTitleCitation_2: [document content]
 This allows the LLM to reference sources in its response.
 
 ### Step 7: LLM Response Generation
-The system prompt, formatted documents, and conversation history are sent to Azure AI Foundry. The LLM generates a response using the provided context, including citation placeholders where appropriate.
+The system prompt, formatted documents, and conversation history are sent to the deployed Microsoft Foundry model through the OpenAI SDK and `/openai/v1/` Chat Completions API. The deployment name is passed in the `model` field. The model generates a response using the provided context, including citation placeholders where appropriate.
 
 ### Step 8: Model Guardrail Checks
 The LLM's response is checked for harmful content using the same content safety checks as user input. If flagged, a safe static response replaces the generated content.
