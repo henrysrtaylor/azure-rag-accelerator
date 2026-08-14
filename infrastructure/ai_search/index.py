@@ -7,7 +7,6 @@ algorithm and semantic reranking.
 
 import logging
 import os
-import time
 
 from azure.search.documents.indexes.models import (
     AzureOpenAIVectorizer,
@@ -44,18 +43,16 @@ fields = [
         analyzer_name="keyword",
         sortable=True,
         filterable=True,
-        facetable=True
+        facetable=True,
     ),
     SearchField(
-        name="document_title",
-        type=SearchFieldDataType.String,
-        searchable=True
+        name="document_title", type=SearchFieldDataType.String, searchable=True
     ),
     SearchField(
         name="document_date",
         type=SearchFieldDataType.String,
         filterable=True,
-        sortable=True
+        sortable=True,
     ),
     SearchField(
         name="text_document_id",
@@ -89,7 +86,7 @@ fields = [
         type=SearchFieldDataType.Collection(SearchFieldDataType.String),
         filterable=True,
         searchable=False,
-    )
+    ),
 ]
 
 vector_search = VectorSearch(
@@ -97,12 +94,10 @@ vector_search = VectorSearch(
         VectorSearchProfile(
             name="HnswProfile",
             algorithm_configuration_name="Hnsw",
-            vectorizer_name="OpenAI"
+            vectorizer_name="OpenAI",
         )
     ],
-    algorithms=[
-        HnswAlgorithmConfiguration(name="Hnsw")
-    ],
+    algorithms=[HnswAlgorithmConfiguration(name="Hnsw")],
     vectorizers=[
         AzureOpenAIVectorizer(
             vectorizer_name="OpenAI",
@@ -111,9 +106,9 @@ vector_search = VectorSearch(
                 resource_url=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
                 model_name=config.embedding_deployed_model,
                 deployment_name=config.embedding_deployed_model,
-            )
+            ),
         )
-    ]
+    ],
 )
 
 semantic_config = SemanticConfiguration(
@@ -121,8 +116,8 @@ semantic_config = SemanticConfiguration(
     prioritized_fields=SemanticPrioritizedFields(
         title_field=SemanticField(field_name="document_title"),
         content_fields=[SemanticField(field_name="content_text")],
-        keywords_fields=[SemanticField(field_name="content_text")]
-    )
+        keywords_fields=[SemanticField(field_name="content_text")],
+    ),
 )
 semantic_search_settings = SemanticSearch(configurations=[semantic_config])
 

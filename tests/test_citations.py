@@ -16,6 +16,7 @@ def test_create_text_citation_map_preserves_document_order() -> None:
         {"id": 2, "text": "Second document"},
     ]
 
+
 def test_align_references_filters_and_renumbers_used_citations() -> None:
     citation_map = [
         {"id": 1, "text": "Unused"},

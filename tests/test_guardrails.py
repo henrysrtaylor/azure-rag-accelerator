@@ -19,6 +19,7 @@ def test_content_moderation_thresholds(
 
     assert guardrails_module._is_content_moderation_detected("input") is expected
 
+
 def test_guardrail_decision_prioritizes_content_moderation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

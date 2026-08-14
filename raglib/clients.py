@@ -5,7 +5,11 @@ from functools import lru_cache
 
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.ai.inference import ChatCompletionsClient
-from azure.identity import AzureCliCredential, ChainedTokenCredential, ManagedIdentityCredential
+from azure.identity import (
+    AzureCliCredential,
+    ChainedTokenCredential,
+    ManagedIdentityCredential,
+)
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient

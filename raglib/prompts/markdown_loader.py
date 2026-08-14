@@ -7,6 +7,7 @@ Routing:
 - Names containing 'eval' → prompts/evaluation/
 - All others → prompts/agent/
 """
+
 from pathlib import Path
 
 
@@ -33,13 +34,13 @@ def markdown_loader(name: str, **kwargs: str) -> str:
     folder = "evaluation" if "eval" in name.lower() else "agent"
     prompts_dir = Path(__file__).parent / folder
     path = prompts_dir / f"{name}.md"
-    
+
     if not path.exists():
         raise FileNotFoundError(f"Prompt file not found: {path}")
-    
+
     content = path.read_text(encoding="utf-8")
-    
+
     if kwargs:
         content = content.format(**kwargs)
-    
+
     return content
