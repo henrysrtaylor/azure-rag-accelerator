@@ -1,10 +1,9 @@
 """Azure AI service integrations for search and LLM operations.
 
 Provides functions for document retrieval via Azure AI Search (hybrid search)
-and LLM interactions via Azure AI Inference (chat completions).
+and LLM interactions via the Microsoft Foundry OpenAI v1 API.
 """
 
-from azure.ai.inference.models import AssistantMessage, SystemMessage, UserMessage
 from azure.search.documents.models import VectorizableTextQuery
 
 from raglib.clients import get_chat_client, get_project_names, get_search_client
@@ -67,7 +66,7 @@ def retrieve_documents(
 
 def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> str:
     """
-    Send a chat completion request via Azure AI Inference.
+    Send a chat completion request via the Microsoft Foundry OpenAI v1 API.
 
     Args:
         deployment_name: The model deployment name (e.g., 'gpt-5').
@@ -76,25 +75,20 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     Returns:
         The model's response text, stripped of leading/trailing whitespace.
     """
-    chat_client = get_chat_client(deployment_name)
-
-    # Convert dict messages to typed message objects
-    typed_messages = []
-    for msg in messages:
-        role = msg.get("role", "user")
-        content = msg.get("content", "")
-        if role == "system":
-            typed_messages.append(SystemMessage(content=content))
-        elif role == "assistant":
-            typed_messages.append(AssistantMessage(content=content))
-        else:
-            typed_messages.append(UserMessage(content=content))
-
-    # reasoning_effort: For reasoning models (gpt-5, o3), controls thinking depth.
-    # Ignored for non-reasoning models (gpt-5-mini).
-    effort = config.reasoning_effort
-
-    response = chat_client.complete(
-        messages=typed_messages, model_extras={"reasoning_effort": effort}
+    chat_client = get_chat_client()
+    normalized_messages = [
+        {
+            "role": message.get("role", "user")
+            if message.get("role") in {"system", "assistant", "user"}
+            else "user",
+            "content": message.get("content", ""),
+        }
+        for message in messages
+    ]
+    response = chat_client.chat.completions.create(
+        model=deployment_name,
+        messages=normalized_messages,
+        reasoning_effort=config.reasoning_effort,
     )
-    return response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    return content.strip() if content else ""
