@@ -3,24 +3,16 @@
 Coordinates document retrieval, LLM generation, citations, guardrails,
 and suggested questions into a unified chat response.
 """
-import os
 from typing import Optional
 
 from raglib.azure_ai import retrieve_documents, send_llm_request
 from raglib.citations import align_references_and_answer, create_text_citation_map, format_documents_with_citations
+from raglib.config import config
 from raglib.enhance import generate_suggested_questions, query_refinement
 from raglib.guardrails import guardrails
 from raglib.prompts.markdown_loader import markdown_loader
 
 prompt_main_agent = markdown_loader("prompt_main_agent")
-MODEL_CONFIG = {
-    "large_deployment": os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL"),
-    "large_version": os.getenv("AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL_VERSION"),
-    "small_deployment": os.getenv("AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL"),
-    "small_version": os.getenv("AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL_VERSION"),
-    "embedding_deployment": os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL"),
-    "embedding_version": os.getenv("AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL_VERSION"),
-}
 CHAT_RESPONSES = {
     "empty_query": markdown_loader("responses/response_empty_query"),
     "exit": markdown_loader("responses/response_exit"),
@@ -104,7 +96,7 @@ def base_chat_logic(
 
     # Query refinement
     if enable_query_refinement:
-        user_query = query_refinement(chat_history, MODEL_CONFIG["large_deployment"])
+        user_query = query_refinement(chat_history, config.large_deployed_model)
     else:
         user_query = next(
             (m["content"] for m in reversed(chat_history) if m["role"] == "user"),
@@ -124,7 +116,7 @@ def base_chat_logic(
     # LLM generation
     main_agent_messages = [{"role": "system", "content": prompt_main_agent + "\n\nContext:" + documents_joined}]
     model_answer = send_llm_request(
-        MODEL_CONFIG["large_deployment"],
+        config.large_deployed_model,
         main_agent_messages + chat_history
     )
 

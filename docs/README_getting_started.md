@@ -1,21 +1,62 @@
 # Getting Started
 
-The following instructions are for Windows (PowerShell). For macOS/Linux, use bash equivalents or [install PowerShell](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell).
+The deployment scripts use Windows PowerShell. You can install and run the Python application on Windows, macOS, or Linux, but infrastructure deployment requires [PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) and the Azure CLI.
 
-## Prerequisites
+## 1. Prerequisites
 
-1. **Azure Permissions**: Owner or Contributor role on the target subscription (required to create resources and assign RBAC roles)
-2. Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-3. Install [Python 3.10+](https://www.python.org/downloads/)
-4. Create a virtual environment:
+You need:
+
+- An Azure subscription with the Owner or Contributor role required to create resources and assign RBAC roles
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+- [Python 3.10 or later](https://www.python.org/downloads/)
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
+
+Install `uv` on Windows:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-5. Login to Azure:
+Install `uv` on macOS or Linux:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+## 2. Clone the Repository
+
+```bash
+git clone "https://github.com/henrysrtaylor/azure-rag-accelerator.git"
+cd azure-rag-accelerator
+```
+
+## 3. Install Dependencies
+
+From the project root, install the runtime and development dependencies declared in `pyproject.toml`. This also creates `.venv` automatically:
+
+```bash
+uv sync
+```
+
+## 4. Activate the Virtual Environment (Optional)
+
+Activation is not required when commands are prefixed with `uv run`.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+## 5. Sign In to Azure
+
+The application and deployment scripts use your Azure identity:
 
 ```powershell
 az login
@@ -25,9 +66,9 @@ az login
 
 ---
 
-## Deployment Steps
+## 6. Deploy and Configure Azure Resources
 
-### Step 1: Deploy Infrastructure
+### 6.1. Deploy Infrastructure
 
 Creates all Azure resources (Search, AI Services, ADLS Gen2 Storage, Function App), assigns RBAC permissions, configures authentication, deploys models, and outputs `.env` file.
 
@@ -43,7 +84,7 @@ The script will prompt for:
 
 > **Tip:** To change the deployed models, edit [infrastructure/deploy/config/models.json](../infrastructure/deploy/config/models.json) before running the script.
 
-### Step 2: Upload Documents
+### 6.2. Upload Documents
 
 Uploads files from `data/documents/` to the ADLS Gen2 `documents` filesystem. Supports: pdf, doc, docx, txt, md, rtf, csv, json, xml, html. Update `data/documents/` with your desired documents first.
 
@@ -51,7 +92,7 @@ Uploads files from `data/documents/` to the ADLS Gen2 `documents` filesystem. Su
 .\upload_documents.ps1
 ```
 
-### Step 3: Deploy Function App Code
+### 6.3. Deploy Function App Code
 
 > **DLS setup:** If you will use document-level security, create or identify the required Microsoft Entra security groups, then replace the placeholder values in [document_security_groups.json](../infrastructure/functions/document_security_groups.json) with their group **object IDs** before deploying the function. Users must belong to a matching group to retrieve the document. See [README_permissions.md](README_permissions.md) for Entra and token configuration.
 
@@ -62,7 +103,7 @@ cd ../functions
 .\deploy.ps1
 ```
 
-### Step 4: Create Search Index
+### 6.4. Create Search Index
 
 Creates the search index with vector search and semantic ranking configuration.
 
@@ -71,7 +112,7 @@ cd ../ai_search
 python index.py
 ```
 
-### Step 5: Create Indexer
+### 6.5. Create Indexer
 
 Creates the skillset (chunking, embeddings, security groups), datasource, and indexer. Starts processing documents.
 
@@ -79,19 +120,36 @@ Creates the skillset (chunking, embeddings, security groups), datasource, and in
 python indexer.py
 ```
 
-### Step 6: Run the Application
+## 7. Run the Application
 
 ```powershell
 cd ../../
-pip install -r requirements.txt
-uvicorn app.backend_server:app --reload
-# In another terminal:
-streamlit run app/streamlit_app.py
+uv run uvicorn app.backend:app --reload
+```
+
+In another terminal, from the project root:
+
+```powershell
+uv run streamlit run app/streamlit_app.py
 ```
 
 Open http://localhost:8501
 
 The backend, Streamlit client, CLI client, index setup, indexer setup, and evaluation script initialize standard Python logging to stdout. This produces consistent timestamped application logs while suppressing verbose Azure SDK request logs. The Azure Function does not run this bootstrap; Azure Functions captures its standard Python logging directly.
+
+## 8. Run Quality Checks
+
+Run the linter and apply safe fixes:
+
+```bash
+uv run ruff check . --fix
+```
+
+Verify formatting:
+
+```bash
+uv run ruff format --check .
+```
 
 ---
 

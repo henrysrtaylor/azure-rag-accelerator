@@ -130,19 +130,14 @@ Executable application and infrastructure scripts call `configure_logging()` fro
 
 ---
 
-## Environment Variables
+## Configuration
 
-All configuration is managed via environment variables (`.env` file):
+RAG behavior, model deployments, embedding dimensions, and guardrail thresholds are defined by the `Config` dataclass in `raglib/config.py`. Azure resource and authentication values are managed through the `.env` file:
 
 ```bash
 # Azure AI Foundry
 AZURE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com/
 AZURE_FOUNDRY_API_VERSION=2024-08-01-preview
-AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL=gpt-4o
-AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL=gpt-4o-mini
-AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL=text-embedding-3-small
-AZURE_FOUNDRY_EMBEDDING_DIMENSIONS=512
-AZURE_FOUNDRY_REASONING_EFFORT=low          # For o-series models
 
 # Azure AI Search
 AZURE_SEARCH_SERVICE_ENDPOINT=https://<service>.search.windows.net/
@@ -169,18 +164,6 @@ AZURE_RESOURCE_GROUP=<resource-group>
 # Function App (DLS) - Function Auth App
 AZURE_FUNCTION_SECURITY_GROUPS_URL=https://<func>.azurewebsites.net/api/get_security_groups
 AZURE_FUNCTION_AUTH_RESOURCE_ID=api://<function-auth-app-client-id>
-
-# RAG Parameters
-PARAMETER_CHUNK_SIZE=2500
-PARAMETER_CHUNK_OVERLAP=500
-PARAMETER_NUMBER_DOC_RETRIEVE=3
-PARAMETER_SUGGESTED_QUESTIONS=3
-
-# Content Safety Thresholds (0-7)
-PARAMETER_HATE_GUARDRAIL_THRESHOLD=4
-PARAMETER_SELFHARM_GUARDRAIL_THRESHOLD=4
-PARAMETER_SEXUAL_GUARDRAIL_THRESHOLD=4
-PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD=4
 ```
 
 ---

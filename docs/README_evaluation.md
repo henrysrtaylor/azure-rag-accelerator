@@ -74,13 +74,9 @@ METRIC_THRESHOLDS = {
 }
 ```
 
-## Environment Variables
+## Judge Model
 
-| Variable | Description |
-|----------|-------------|
-| `AZURE_FOUNDRY_JUDGE_MODEL` | Model deployment for judges (e.g., `gpt-4o-mini`) |
-
-Set in `.env`. The judge model can differ from the main chat model.
+Set `judge_model` in the `Config` dataclass in `raglib/config.py`. The judge model can differ from the main chat model.
 
 ## Running
 

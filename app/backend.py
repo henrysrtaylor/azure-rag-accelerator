@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from raglib.config import load_env_vars
+from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import failure_chat_response, inference_chat_logic
@@ -75,22 +75,6 @@ def health_check() -> dict:
     try:
         # Check if environment variables are loaded
         required_vars = [
-            "PARAMETER_CHUNK_SIZE",
-            "PARAMETER_CHUNK_OVERLAP",
-            "PARAMETER_NUMBER_DOC_RETRIEVE",
-            "PARAMETER_K_NEAREST_NEIGHBORS",
-            "PARAMETER_SUGGESTED_QUESTIONS",
-            "PARAMETER_HATE_GUARDRAIL_THRESHOLD",
-            "PARAMETER_SELFHARM_GUARDRAIL_THRESHOLD",
-            "PARAMETER_SEXUAL_GUARDRAIL_THRESHOLD",
-            "PARAMETER_VIOLENCE_GUARDRAIL_THRESHOLD",
-            "AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL",
-            "AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL",
-            "AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL",
-            "AZURE_FOUNDRY_EMBEDDING_DIMENSIONS",
-            "AZURE_FOUNDRY_LARGE_DEPLOYED_MODEL_VERSION",
-            "AZURE_FOUNDRY_SMALL_DEPLOYED_MODEL_VERSION",
-            "AZURE_FOUNDRY_EMBEDDING_DEPLOYED_MODEL_VERSION",
             "AZURE_SUBSCRIPTION_ID",
             "AZURE_RESOURCE_GROUP",
             "AZURE_FOUNDRY_RESOURCE",

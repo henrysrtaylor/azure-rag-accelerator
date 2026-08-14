@@ -12,7 +12,7 @@ import numpy as np
 from tqdm import tqdm
 
 from eval_config import METRIC_THRESHOLDS
-from raglib.config import load_env_vars
+from raglib.clients import load_env_vars
 from raglib.eval import (
     precision_recall_at_k,
     f1_score,

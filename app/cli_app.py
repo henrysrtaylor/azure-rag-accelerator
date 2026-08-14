@@ -8,7 +8,7 @@ import os
 import msal
 import requests
 
-from raglib.config import load_env_vars
+from raglib.clients import load_env_vars
 
 load_env_vars()
 

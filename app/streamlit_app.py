@@ -8,7 +8,7 @@ import msal
 import requests
 import streamlit as st
 
-from raglib.config import load_env_vars
+from raglib.clients import load_env_vars
 
 load_env_vars()
 
