@@ -14,7 +14,8 @@ from pydantic import BaseModel, Field
 from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import failure_chat_response, inference_chat_logic
+from raglib.pipeline import inference_chat_logic
+from raglib.prompts.responses import failure_chat_response
 
 logger = logging.getLogger(__name__)
 

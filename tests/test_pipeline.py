@@ -4,6 +4,7 @@ import pytest
 
 from raglib import pipeline
 from raglib.citations import PLACEHOLDER_CITATION
+from raglib.prompts.responses import EMPTY_QUERY_RESPONSE, GUARDRAIL_RESPONSE
 
 
 def test_inference_returns_empty_response_before_rag(
@@ -16,10 +17,7 @@ def test_inference_returns_empty_response_before_rag(
         [{"role": "user", "content": "   "}],
     )
 
-    assert (
-        result["assistant_message"]["content"]
-        == pipeline._CHAT_RESPONSES["empty_query"]
-    )
+    assert result["assistant_message"]["content"] == EMPTY_QUERY_RESPONSE
     assert result["save_chat_history"] is False
     base_chat_logic.assert_not_called()
 
@@ -106,7 +104,7 @@ def test_model_guardrail_removes_context_references_and_suggestions(
 
     assert (
         result["assistant_message"]["content"]
-        == pipeline._CHAT_RESPONSES["inappropriate_text"]
+        == GUARDRAIL_RESPONSE
     )
     assert result["references"] == []
     assert result["suggested_questions"] == []

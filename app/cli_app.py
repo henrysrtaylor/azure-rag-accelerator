@@ -140,5 +140,6 @@ def interactive_chat() -> None:
             )
             chat_history = chat_history[-12:]
 
+
 if __name__ == "__main__":
     interactive_chat()
