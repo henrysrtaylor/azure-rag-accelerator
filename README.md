@@ -70,7 +70,7 @@ These feature flags are owned by each client and sent with every `/chat` request
 | Suggested questions | `OPTION_SUGGESTED_QUESTIONS` constant | Setup toggle | Generate follow-up question suggestions |
 | Document-level security | `OPTION_SECURITY_GROUPS` constant | Authentication toggle | Apply Entra ID group filtering |
 
-The API returns one consistent response shape for normal answers, empty input, exit commands, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients only display the response and follow its `save_chat_history` and `end_conversation` values.
+The API returns one consistent response shape for normal answers, empty input, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients display the response and use `save_chat_history` to decide whether to retain the turn.
 
 Tunable values in `raglib/config.py`:
 

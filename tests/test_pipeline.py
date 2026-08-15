@@ -6,30 +6,20 @@ from raglib import pipeline
 from raglib.citations import PLACEHOLDER_CITATION
 
 
-@pytest.mark.parametrize(
-    ("query", "response_key", "end_conversation"),
-    [
-        ("   ", "empty_query", False),
-        ("QUIT", "exit", True),
-    ],
-)
-def test_inference_returns_control_response_before_rag(
+def test_inference_returns_empty_response_before_rag(
     monkeypatch: pytest.MonkeyPatch,
-    query: str,
-    response_key: str,
-    end_conversation: bool,
 ) -> None:
     base_chat_logic = Mock()
     monkeypatch.setattr(pipeline, "base_chat_logic", base_chat_logic)
 
     result = pipeline.inference_chat_logic(
-        [{"role": "user", "content": query}],
+        [{"role": "user", "content": "   "}],
     )
 
     assert (
-        result["assistant_message"]["content"] == pipeline.CHAT_RESPONSES[response_key]
+        result["assistant_message"]["content"]
+        == pipeline._CHAT_RESPONSES["empty_query"]
     )
-    assert result["end_conversation"] is end_conversation
     assert result["save_chat_history"] is False
     base_chat_logic.assert_not_called()
 
@@ -116,7 +106,7 @@ def test_model_guardrail_removes_context_references_and_suggestions(
 
     assert (
         result["assistant_message"]["content"]
-        == pipeline.CHAT_RESPONSES["inappropriate_text"]
+        == pipeline._CHAT_RESPONSES["inappropriate_text"]
     )
     assert result["references"] == []
     assert result["suggested_questions"] == []

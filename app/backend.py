@@ -84,10 +84,6 @@ class ChatResponse(BaseModel):
     save_chat_history: bool = Field(
         default=True, description="Whether clients should persist this turn"
     )
-    end_conversation: bool = Field(
-        default=False,
-        description="Whether an interactive client should end the conversation",
-    )
 
 
 @app.get("/", tags=["Health"])

@@ -140,9 +140,5 @@ def interactive_chat() -> None:
             )
             chat_history = chat_history[-12:]
 
-        if chat_response.get("end_conversation", False):
-            break
-
-
 if __name__ == "__main__":
     interactive_chat()
