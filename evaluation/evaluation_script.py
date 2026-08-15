@@ -25,7 +25,7 @@ from raglib.eval import (
 )
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import evaluation_chat_logic
+from raglib.pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ aggregated_metrics = [
 
 results_individual: list[dict] = []
 security_filter = build_security_filter(None)
+rag_pipeline = RAGPipeline()
 
 print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
 
@@ -75,7 +76,10 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     ]
 
     start_time = time.time()
-    chat_response = evaluation_chat_logic(chat_history, security_filter=security_filter)
+    chat_response = rag_pipeline.run_evaluation(
+        chat_history,
+        security_filter=security_filter,
+    )
     response = chat_response.get("assistant_message", {"content": ""}).get(
         "content", ""
     )

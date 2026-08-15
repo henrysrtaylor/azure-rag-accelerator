@@ -4,6 +4,10 @@
 .env.*.local
 !.env.example
 
+# ruff
+.ruff_cache
+
+
 # Python
 *.pyc
 .venv/

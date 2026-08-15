@@ -15,7 +15,7 @@ from raglib.chat_response import create_chat_response
 from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import inference_chat_logic
+from raglib.pipeline import RAGPipeline
 from raglib.prompts.responses import FAILURE_RESPONSE
 
 logger = logging.getLogger(__name__)
@@ -145,13 +145,15 @@ async def chat(request: ChatRequest) -> ChatResponse:
     try:
         chat_history_dict = [dict(msg) for msg in request.chat_history]
         security_filter = build_security_filter(request.security_groups)
-
-        return inference_chat_logic(
-            chat_history=chat_history_dict,
-            security_filter=security_filter,
+        rag_pipeline = RAGPipeline(
             enable_query_refinement=request.enable_query_refinement,
             enable_guardrail_checks=request.enable_guardrail_checks,
             enable_suggested_questions=request.enable_suggested_questions,
+        )
+
+        return rag_pipeline.run_inference(
+            chat_history=chat_history_dict,
+            security_filter=security_filter,
         )
     except Exception:
         logger.exception("Chat request failed")

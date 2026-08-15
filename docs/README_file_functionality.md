@@ -21,13 +21,16 @@ The Azure Function intentionally uses the platform-provided logger instead of im
 Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Microsoft Foundry model deployments through the stable OpenAI SDK and v1 Chat Completions API.
 
 ### `pipeline.py`
-Main chat orchestration logic. `base_chat_logic()` coordinates the full RAG pipeline: query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. `inference_chat_logic()` applies user guardrails before retrieval and returns whether the client should retain the turn. `evaluation_chat_logic()` is a simplified version for testing.
+Main chat orchestration logic. `RAGPipeline` stores stable feature configuration and coordinates query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. `run_inference()` applies user guardrails and returns the client response, while `run_evaluation()` retains document context and removes inference-only fields. Chat history and document security filters are supplied per method call.
+
+### `chat_response.py`
+Constructs the standard chat response dictionary used by pipeline and application outcomes.
 
 ### `permissions.py`
 Document-Level Security (DLS) implementation. `build_security_filter()` converts user security group GUIDs into an OData filter expression that restricts search results to documents the user is authorized to view.
 
 ### `guardrails.py`
-Content moderation and safety checks. Uses Azure AI Foundry Content Safety to detect harmful content (hate, violence, sexual, self-harm), prompt injection attempts, and jailbreak attacks. Provides both user-input validation (`check_user_guardrails()`) and model-output validation (`check_model_guardrails()`).
+Content moderation and safety checks. Uses Azure AI Foundry Content Safety to detect harmful content (hate, violence, sexual, self-harm), prompt injection attempts, and off-topic input. `guardrails()` selects user-input or model-output checks through its `model` argument.
 
 ### `enhance.py`
 Query enhancement utilities. Contains `query_refinement()` which rewrites user queries using conversation context to improve retrieval, and `generate_suggested_questions()` which uses an LLM to suggest relevant follow-up questions based on conversation history and retrieved documents.
@@ -42,12 +45,18 @@ Reference management for RAG responses. Creates citation placeholders for docume
 ### `markdown_loader.py`
 Markdown template management. Loads `.md` files from the prompts folder with support for variable substitution using `{variable}` syntax.
 
+### `prompts.py`
+Preloads named system prompts used by the pipeline, guardrails, evaluation, enhancement, and indexing modules.
+
+### `responses.py`
+Preloads static response text for empty input, guardrail outcomes, and unexpected failures. Response dictionary construction remains in `raglib/chat_response.py`.
+
 ---
 
 ## Applications (`app/`)
 
 ### `backend.py`
-FastAPI REST API server. Exposes `/chat` for RAG interactions, user and model guardrails, empty-message and exit-command responses, and the history-save decision; `/health_check` provides monitoring. Handles request/response serialization and security group passthrough.
+FastAPI REST API server. Exposes `/chat` for RAG interactions, user and model guardrails, empty-message responses, and the history-save decision; `/health_check` provides monitoring. Handles request/response serialization and security group passthrough.
 
 ### `streamlit_app.py`
 Web-based chat interface built with Streamlit. Provides a modern UI with MSAL authentication, configurable options (guardrails, DLS, references, suggested questions), and real-time chat with the RAG backend. Calls the unified FastAPI `/chat` endpoint via HTTP.
