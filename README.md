@@ -36,7 +36,7 @@ azure-rag-accelerator/
 │   ├── permissions.py         # Document-level security
 │   ├── citations.py           # Reference management
 │   ├── enhance.py             # Query refinement & suggestions
-│   ├── config.py              # Typed RAG and model settings
+│   ├── config.py              # Typed app and evaluation settings
 │   ├── clients.py             # Azure client factories
 │   ├── log.py                 # Logging configuration (stdout)
 │   ├── eval.py                # LLM-as-judge evaluation functions

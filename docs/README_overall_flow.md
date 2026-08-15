@@ -224,5 +224,5 @@ Markdown templates are loaded via `markdown_loader.py`. Named static prompts and
 ### Logging (`log.py`)
 Standard Python logging configuration. Executable processes initialize `configure_logging()` for timestamped logs sent to stdout; backend, permissions, index, indexer, and evaluation modules emit the actual log messages. The Azure Function uses standard Python logging without importing the application logging module, allowing the Azure Functions host to capture its logs directly.
 
-### Environment Setup (`config.py`)
+### Application Configuration (`config.py`)
 Centralized Azure client initialization using `DefaultAzureCredential`. Generates consistent naming for indexes and indexers based on project configuration.

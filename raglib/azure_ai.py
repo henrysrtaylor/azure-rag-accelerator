@@ -7,7 +7,7 @@ and LLM interactions via the Microsoft Foundry OpenAI v1 API.
 from azure.search.documents.models import VectorizableTextQuery
 
 from raglib.clients import get_chat_client, get_project_names, get_search_client
-from raglib.config import config
+from raglib.config import app_config
 
 
 def retrieve_documents(
@@ -29,7 +29,7 @@ def retrieve_documents(
 
     vector_query = VectorizableTextQuery(
         text=text_query,
-        k_nearest_neighbors=config.k_nearest_neighbors,
+        k_nearest_neighbors=app_config.k_nearest_neighbors,
         fields="content_embedding",
         exhaustive=False,
     )
@@ -44,7 +44,7 @@ def retrieve_documents(
         semantic_configuration_name=semantic_config_name,  # use your semantic config
         select=["content_text", "document_title", "document_date"],
         filter=security_filter,  # Apply document-level security filter
-        top=config.number_documents_retrieve,
+        top=app_config.number_documents_retrieve,
     )
 
     # process results to combine chunks by title and page number
@@ -88,7 +88,7 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     response = chat_client.chat.completions.create(
         model=deployment_name,
         messages=normalized_messages,
-        reasoning_effort=config.reasoning_effort,
+        reasoning_effort=app_config.reasoning_effort,
     )
     content = response.choices[0].message.content
     return content.strip() if content else ""

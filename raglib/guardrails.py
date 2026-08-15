@@ -15,7 +15,7 @@ from azure.core.rest import HttpRequest
 
 from raglib.azure_ai import send_llm_request
 from raglib.clients import get_content_safety_client
-from raglib.config import config
+from raglib.config import app_config
 from raglib.prompts.prompts import GUARDRAIL_ONTOPIC_PROMPT
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
@@ -123,10 +123,10 @@ def _is_content_moderation_detected(text: str) -> bool:
     text_moderation_results = moderate_content(text)
 
     return (
-        text_moderation_results["hate"] >= config.hate_guardrail_threshold
-        or text_moderation_results["self_harm"] >= config.self_harm_guardrail_threshold
-        or text_moderation_results["sexual"] >= config.sexual_guardrail_threshold
-        or text_moderation_results["violence"] >= config.violence_guardrail_threshold
+        text_moderation_results["hate"] >= app_config.hate_guardrail_threshold
+        or text_moderation_results["self_harm"] >= app_config.self_harm_guardrail_threshold
+        or text_moderation_results["sexual"] >= app_config.sexual_guardrail_threshold
+        or text_moderation_results["violence"] >= app_config.violence_guardrail_threshold
     )
 
 
@@ -169,7 +169,7 @@ def _run_guardrails(query: str, check_prompt_and_topic: bool) -> dict[str, bool]
         }
 
     prompt_injection_detected = detect_jailbreak(query)
-    off_topic_detected = _is_off_topic(query, config.large_deployed_model)
+    off_topic_detected = _is_off_topic(query, app_config.large_deployed_model)
 
     return {
         "content_moderation_detected": content_moderation_detected,

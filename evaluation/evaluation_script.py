@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-from eval_config import METRIC_THRESHOLDS
 from tqdm import tqdm
 
 from raglib.clients import load_env_vars
@@ -23,6 +22,7 @@ from raglib.eval import (
     normalize_score,
     precision_recall_at_k,
 )
+from raglib.config import eval_config
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import RAGPipeline
@@ -160,7 +160,7 @@ def print_summary_table(metrics: dict) -> int:
 
     for metric_key in aggregated_metrics:
         score = metrics.get(metric_key, 0)
-        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        threshold = eval_config.metric_thresholds.get(metric_key, 0.5)
         status = "PASS" if score >= threshold else "FAIL"
         if status == "PASS":
             passed += 1
@@ -196,7 +196,7 @@ def save_results_json(results: list[dict], aggregated: dict, timestamp: str) -> 
     }
     for metric_key in aggregated_metrics:
         score = aggregated.get(metric_key, 0)
-        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        threshold = eval_config.metric_thresholds.get(metric_key, 0.5)
         status = "PASS" if score >= threshold else "FAIL"
         if status == "PASS":
             summary["passed"] += 1

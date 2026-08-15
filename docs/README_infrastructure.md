@@ -134,7 +134,7 @@ Executable application and infrastructure scripts call `configure_logging()` fro
 
 ## Configuration
 
-RAG behavior, model deployments, embedding dimensions, and guardrail thresholds are defined by the `Config` dataclass in `raglib/config.py`. Azure resource and authentication values are managed through the `.env` file:
+RAG behavior, model deployments, embedding dimensions, and guardrail thresholds are defined by the `AppConfig` dataclass and `app_config` instance in `raglib/config.py`. Azure resource and authentication values are managed through the `.env` file:
 
 ```bash
 # Azure AI Foundry

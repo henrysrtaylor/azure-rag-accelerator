@@ -2,16 +2,16 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from raglib.config import Config, config
+from raglib.config import AppConfig, app_config
 
 
 def test_config_has_valid_immutable_values() -> None:
-    assert isinstance(config, Config)
-    assert isinstance(config.large_deployed_model, str)
-    assert config.large_deployed_model
-    assert config.chunk_size > 0
-    assert config.number_documents_retrieve > 0
-    assert config.embedding_dimensions > 0
+    assert isinstance(app_config, AppConfig)
+    assert isinstance(app_config.large_deployed_model, str)
+    assert app_config.large_deployed_model
+    assert app_config.chunk_size > 0
+    assert app_config.number_documents_retrieve > 0
+    assert app_config.embedding_dimensions > 0
 
     with pytest.raises(FrozenInstanceError):
-        config.chunk_size = 2000
+        app_config.chunk_size = 2000

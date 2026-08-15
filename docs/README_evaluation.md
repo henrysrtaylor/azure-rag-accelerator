@@ -25,14 +25,14 @@ This accelerator uses **custom LLM-as-judge evaluators** rather than the Azure A
 
 ```
 evaluation/
-├── evaluation_script.py   # Main evaluation runner
-└── eval_config.py         # Thresholds and configuration
+└── evaluation_script.py   # Main evaluation runner
 
 data/
 └── golden_dataset.json    # Test queries with ground truth
 
 raglib/
 ├── eval.py                # Judge functions and metrics
+├── config.py              # Typed app settings and evaluation thresholds
 └── prompts/evaluation/    # LLM judge prompts
     ├── prompt_eval_groundedness.md
     ├── prompt_eval_relevance.md
@@ -60,23 +60,24 @@ Prompts live in `raglib/prompts/evaluation/` and can be customized.
 
 ## Configuration
 
-Thresholds are defined in `evaluation/eval_config.py`:
+Thresholds are defined by the frozen `EvalConfig` dataclass in
+`raglib/config.py` and exposed through the `eval_config` instance:
 
 ```python
-METRIC_THRESHOLDS = {
-    "groundedness": 0.6,  # 3/5 normalized
-    "relevance": 0.6,
-    "fluency": 0.6,
-    "coherence": 0.6,
-    "f1_score": 0.5,
-    "retrieval_precision_at_1": 0.5,
-    "retrieval_recall_at_5": 0.7,  # Higher - missing docs is worse
-}
+@dataclass(frozen=True)
+class EvalConfig:
+    groundedness_threshold: float = 0.6
+    relevance_threshold: float = 0.6
+    f1_score_threshold: float = 0.5
+    retrieval_recall_at_5_threshold: float = 0.7
+
+
+eval_config = EvalConfig()
 ```
 
 ## Judge Model
 
-Set `judge_model` in the `Config` dataclass in `raglib/config.py`. The judge model can differ from the main chat model.
+Set `judge_model` in the `AppConfig` dataclass in `raglib/config.py`. The judge model can differ from the main chat model.
 
 ## Running
 

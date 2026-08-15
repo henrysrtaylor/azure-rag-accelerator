@@ -11,7 +11,7 @@ from raglib.citations import (
     create_text_citation_map,
     format_documents_with_citations,
 )
-from raglib.config import config
+from raglib.config import app_config
 from raglib.enhance import generate_suggested_questions, query_refinement
 from raglib.guardrails import guardrails
 from raglib.prompts.prompts import MAIN_AGENT_PROMPT
@@ -94,7 +94,7 @@ class RAGPipeline:
             decision.
         """
         if self.enable_query_refinement:
-            user_query = query_refinement(chat_history, config.large_deployed_model)
+            user_query = query_refinement(chat_history, app_config.large_deployed_model)
         else:
             user_query = next(
                 (
@@ -123,7 +123,7 @@ class RAGPipeline:
             }
         ]
         model_answer = send_llm_request(
-            config.large_deployed_model,
+            app_config.large_deployed_model,
             main_agent_messages + chat_history,
         )
 
