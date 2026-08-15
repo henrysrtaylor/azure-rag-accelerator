@@ -26,6 +26,7 @@
       "properties": {
         "isHnsEnabled": true,
         "allowSharedKeyAccess": false,
+        "publicNetworkAccess": "Enabled",
         "minimumTlsVersion": "TLS1_2",
         "supportsHttpsTrafficOnly": true
       }
@@ -47,6 +48,7 @@
       "kind": "StorageV2",
       "properties": {
         "allowSharedKeyAccess": false,
+        "publicNetworkAccess": "Enabled",
         "minimumTlsVersion": "TLS1_2",
         "supportsHttpsTrafficOnly": true
       }
