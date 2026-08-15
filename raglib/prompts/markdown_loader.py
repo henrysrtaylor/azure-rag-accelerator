@@ -16,8 +16,8 @@ def markdown_loader(name: str, **kwargs: str) -> str:
     Load a markdown template and substitute variables.
 
     Args:
-        name: Template name (without .md extension), e.g., "prompt_main_agent"
-              or "responses/response_jailbreak". Names containing 'eval' load
+          name: Template name (without .md extension), e.g., "prompt_main_agent"
+              or "responses/response_guardrail". Names containing 'eval' load
               from evaluation/ folder, others from agent/ folder.
         **kwargs: Variables to substitute in the template.
 

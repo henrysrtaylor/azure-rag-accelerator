@@ -11,11 +11,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from raglib.chat_response import create_chat_response
 from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import inference_chat_logic
-from raglib.prompts.responses import failure_chat_response
+from raglib.prompts.responses import FAILURE_RESPONSE
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         )
     except Exception:
         logger.exception("Chat request failed")
-        return failure_chat_response()
+        return create_chat_response(FAILURE_RESPONSE)
 
 
 if __name__ == "__main__":

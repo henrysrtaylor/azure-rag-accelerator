@@ -10,7 +10,7 @@ Usage:
     prompt = markdown_loader("prompt_main_agent")
 
     # Load response template
-    response = markdown_loader("responses/response_jailbreak")
+    response = markdown_loader("responses/response_guardrail")
 """
 
 from raglib.prompts.markdown_loader import markdown_loader
