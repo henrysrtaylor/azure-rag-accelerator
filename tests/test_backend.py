@@ -4,6 +4,8 @@ from unittest.mock import Mock
 import pytest
 
 from app import backend
+from raglib.chat_response import create_chat_response
+from raglib.prompts.responses import FAILURE_RESPONSE
 
 
 def make_request(**overrides: object) -> backend.ChatRequest:
@@ -22,7 +24,7 @@ def test_chat_forwards_security_filter_and_feature_flags(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     build_security_filter = Mock(return_value="odata-filter")
-    inference_chat_logic = Mock(
+    run_inference = Mock(
         return_value={
             "assistant_message": {"role": "assistant", "content": "answer"},
             "suggested_questions": [],
@@ -32,8 +34,10 @@ def test_chat_forwards_security_filter_and_feature_flags(
             "save_chat_history": True,
         }
     )
+    rag_pipeline = Mock(run_inference=run_inference)
+    rag_pipeline_class = Mock(return_value=rag_pipeline)
     monkeypatch.setattr(backend, "build_security_filter", build_security_filter)
-    monkeypatch.setattr(backend, "inference_chat_logic", inference_chat_logic)
+    monkeypatch.setattr(backend, "RAGPipeline", rag_pipeline_class)
 
     result = asyncio.run(
         backend.chat(
@@ -46,12 +50,14 @@ def test_chat_forwards_security_filter_and_feature_flags(
     )
 
     build_security_filter.assert_called_once_with(["group-a"])
-    inference_chat_logic.assert_called_once_with(
-        chat_history=[{"role": "user", "content": "question"}],
-        security_filter="odata-filter",
+    rag_pipeline_class.assert_called_once_with(
         enable_query_refinement=False,
         enable_guardrail_checks=False,
         enable_suggested_questions=False,
+    )
+    run_inference.assert_called_once_with(
+        chat_history=[{"role": "user", "content": "question"}],
+        security_filter="odata-filter",
     )
     assert result["assistant_message"]["content"] == "answer"
 
@@ -60,13 +66,11 @@ def test_chat_returns_standard_failure_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(backend, "build_security_filter", lambda groups: None)
-
-    def raise_failure(**kwargs: object) -> dict:
-        raise RuntimeError("Azure unavailable")
-
-    monkeypatch.setattr(backend, "inference_chat_logic", raise_failure)
+    rag_pipeline = Mock()
+    rag_pipeline.run_inference.side_effect = RuntimeError("Azure unavailable")
+    monkeypatch.setattr(backend, "RAGPipeline", Mock(return_value=rag_pipeline))
 
     result = asyncio.run(backend.chat(make_request()))
 
-    assert result == backend.failure_chat_response()
+    assert result == create_chat_response(FAILURE_RESPONSE)
     assert result["save_chat_history"] is False
