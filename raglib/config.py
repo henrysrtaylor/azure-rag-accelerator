@@ -1,10 +1,10 @@
-"""Typed configuration for RAG behavior and model selection."""
+"""Typed application and evaluation configuration."""
 
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Config:
+class AppConfig:
     """Application defaults configured in code rather than environment variables.
 
     Chunking and retrieval values control Azure AI Search behavior. Guardrail
@@ -33,4 +33,35 @@ class Config:
     reasoning_effort: str = "low"
 
 
-config = Config()
+@dataclass(frozen=True)
+class EvalConfig:
+    """Pass/fail thresholds for normalized evaluation metrics."""
+
+    groundedness_threshold: float = 0.6
+    relevance_threshold: float = 0.6
+    fluency_threshold: float = 0.6
+    coherence_threshold: float = 0.6
+    f1_score_threshold: float = 0.5
+    retrieval_precision_at_1_threshold: float = 0.5
+    retrieval_precision_at_5_threshold: float = 0.5
+    retrieval_recall_at_1_threshold: float = 0.5
+    retrieval_recall_at_5_threshold: float = 0.7
+
+    @property
+    def metric_thresholds(self) -> dict[str, float]:
+        """Map evaluation result keys to their pass/fail thresholds."""
+        return {
+            "groundedness": self.groundedness_threshold,
+            "relevance": self.relevance_threshold,
+            "fluency": self.fluency_threshold,
+            "coherence": self.coherence_threshold,
+            "f1_score": self.f1_score_threshold,
+            "retrieval_precision_at_1": self.retrieval_precision_at_1_threshold,
+            "retrieval_precision_at_5": self.retrieval_precision_at_5_threshold,
+            "retrieval_recall_at_1": self.retrieval_recall_at_1_threshold,
+            "retrieval_recall_at_5": self.retrieval_recall_at_5_threshold,
+        }
+
+
+app_config = AppConfig()
+eval_config = EvalConfig()

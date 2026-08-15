@@ -7,7 +7,7 @@ This document provides a brief overview of each Python file in the codebase.
 ## Core RAG Library (`raglib/`)
 
 ### `config.py`
-Typed application settings for chunking, retrieval, model deployments, embeddings, reasoning effort, and guardrail thresholds.
+Defines `AppConfig` for application behavior and model settings and `EvalConfig` for evaluation pass/fail thresholds. The frozen `app_config` and `eval_config` instances are imported by their respective consumers.
 
 ### `clients.py`
 Environment loading and cached Azure client initialization. Creates Azure AI Search, Content Safety, storage, and OpenAI clients. The OpenAI client uses the Microsoft Foundry `/openai/v1/` endpoint with an automatically refreshed Entra ID bearer token.

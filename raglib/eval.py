@@ -11,7 +11,7 @@ structured scores (1-5) with reasoning.
 import json
 
 from raglib.azure_ai import send_llm_request
-from raglib.config import config
+from raglib.config import app_config
 from raglib.prompts.prompts import (
     EVAL_COHERENCE_PROMPT,
     EVAL_FLUENCY_PROMPT,
@@ -95,7 +95,7 @@ def _call_judge(system_prompt: str, user_content: str) -> dict:
         Dict with 'score' (1-5) and 'reasoning' keys.
         Returns {'score': None, 'reasoning': 'Error: ...'} on failure.
     """
-    deployment = config.judge_model
+    deployment = app_config.judge_model
 
     messages = [
         {"role": "system", "content": system_prompt},

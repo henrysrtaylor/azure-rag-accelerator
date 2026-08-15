@@ -6,7 +6,7 @@ import re
 import uuid
 
 from raglib.azure_ai import send_llm_request
-from raglib.config import config
+from raglib.config import app_config
 from raglib.prompts.markdown_loader import markdown_loader
 from raglib.prompts.prompts import QUERY_REFINEMENT_PROMPT
 
@@ -50,7 +50,7 @@ def generate_suggested_questions(
     """
     prompt_suggested_questions = markdown_loader(
         "prompt_suggested_questions",
-        number_suggested_questions=config.suggested_questions,
+        number_suggested_questions=app_config.suggested_questions,
     )
     message_content = (
         "Context:\n"
@@ -69,7 +69,7 @@ def generate_suggested_questions(
     ]
 
     answer = send_llm_request(
-        config.large_deployed_model, generate_suggested_questions_messages
+        app_config.large_deployed_model, generate_suggested_questions_messages
     ).strip()
 
     pattern_match = r"\[([^\[\]]*?\?)\]"
