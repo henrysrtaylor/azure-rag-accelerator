@@ -38,12 +38,12 @@ from raglib.clients import (
 )
 from raglib.config import config
 from raglib.log import configure_logging
-from raglib.prompts.markdown_loader import markdown_loader
+from raglib.prompts.prompts import VERBALISATION_IMAGE_PROMPT
 
 logger = logging.getLogger(__name__)
 
 configure_logging()
-prompt_verbalisation_image = markdown_loader("prompt_verbalisation_image")
+prompt_verbalisation_image = VERBALISATION_IMAGE_PROMPT
 
 load_env_vars()
 index_name, semantic_config_name = get_project_names()

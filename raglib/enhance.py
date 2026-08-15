@@ -8,9 +8,7 @@ import uuid
 from raglib.azure_ai import send_llm_request
 from raglib.config import config
 from raglib.prompts.markdown_loader import markdown_loader
-
-# Load prompts
-prompt_query_refinement = markdown_loader("prompt_query_refinement")
+from raglib.prompts.prompts import QUERY_REFINEMENT_PROMPT
 
 
 ###
@@ -27,7 +25,7 @@ def query_refinement(messages: list, deployment: str) -> str:
     query_refinement_messages = [
         {
             "role": "system",
-            "content": prompt_query_refinement
+            "content": QUERY_REFINEMENT_PROMPT
             + "\n##########\n"
             + message_content
             + "\n##########",

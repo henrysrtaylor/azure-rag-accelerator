@@ -12,7 +12,12 @@ import json
 
 from raglib.azure_ai import send_llm_request
 from raglib.config import config
-from raglib.prompts.markdown_loader import markdown_loader
+from raglib.prompts.prompts import (
+    EVAL_COHERENCE_PROMPT,
+    EVAL_FLUENCY_PROMPT,
+    EVAL_GROUNDEDNESS_PROMPT,
+    EVAL_RELEVANCE_PROMPT,
+)
 
 
 # Evaluation metrics
@@ -142,7 +147,7 @@ def judge_groundedness(query: str, context: str, response: str) -> dict:
     Returns:
         Dict with 'score' (1-5, where 5=fully grounded) and 'reasoning'.
     """
-    system_prompt = markdown_loader("prompt_eval_groundedness")
+    system_prompt = EVAL_GROUNDEDNESS_PROMPT
 
     user_content = f"""## Query
 {query}
@@ -167,7 +172,7 @@ def judge_relevance(query: str, response: str) -> dict:
     Returns:
         Dict with 'score' (1-5, where 5=highly relevant) and 'reasoning'.
     """
-    system_prompt = markdown_loader("prompt_eval_relevance")
+    system_prompt = EVAL_RELEVANCE_PROMPT
 
     user_content = f"""## Query
 {query}
@@ -189,7 +194,7 @@ def judge_coherence(query: str, response: str) -> dict:
     Returns:
         Dict with 'score' (1-5, where 5=perfectly coherent) and 'reasoning'.
     """
-    system_prompt = markdown_loader("prompt_eval_coherence")
+    system_prompt = EVAL_COHERENCE_PROMPT
 
     user_content = f"""## Query
 {query}
@@ -210,7 +215,7 @@ def judge_fluency(response: str) -> dict:
     Returns:
         Dict with 'score' (1-5, where 5=excellent fluency) and 'reasoning'.
     """
-    system_prompt = markdown_loader("prompt_eval_fluency")
+    system_prompt = EVAL_FLUENCY_PROMPT
 
     user_content = f"""## Response
 {response}"""

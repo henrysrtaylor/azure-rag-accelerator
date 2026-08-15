@@ -275,6 +275,5 @@ if prompt:
                         ]
                     )
 
-
             except requests.RequestException as e:
                 st.error(f"Chat API error: {e}")

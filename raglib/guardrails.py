@@ -16,9 +16,7 @@ from azure.core.rest import HttpRequest
 from raglib.azure_ai import send_llm_request
 from raglib.clients import get_content_safety_client
 from raglib.config import config
-from raglib.prompts.markdown_loader import markdown_loader
-
-prompt_guardrail_ontopic = markdown_loader("prompt_guardrail_ontopic")
+from raglib.prompts.prompts import GUARDRAIL_ONTOPIC_PROMPT
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
 REPLACE_WORDS = [
@@ -145,7 +143,7 @@ def _is_off_topic(user_query: str, deployment_name: str) -> bool:
     """
 
     guardrail_messages = [
-        {"role": "system", "content": prompt_guardrail_ontopic},
+        {"role": "system", "content": GUARDRAIL_ONTOPIC_PROMPT},
         {"role": "user", "content": user_query},
     ]
     on_topic = send_llm_request(deployment_name, guardrail_messages).strip().lower()
