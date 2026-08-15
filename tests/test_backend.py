@@ -30,7 +30,6 @@ def test_chat_forwards_security_filter_and_feature_flags(
             "guardrail_triggered": False,
             "guardrail_type": None,
             "save_chat_history": True,
-            "end_conversation": False,
         }
     )
     monkeypatch.setattr(backend, "build_security_filter", build_security_filter)
