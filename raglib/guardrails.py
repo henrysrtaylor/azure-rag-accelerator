@@ -4,6 +4,7 @@ Implements content moderation (hate, violence, etc.), jailbreak detection,
 and on-topic classification using Azure Content Safety and LLM-as-judge.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -18,6 +19,8 @@ from raglib.azure_ai import send_llm_request
 from raglib.clients import get_content_safety_client
 from raglib.config import app_config
 from raglib.prompts.prompts import GUARDRAIL_ONTOPIC_PROMPT
+
+logger = logging.getLogger(__name__)
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
 REPLACE_WORDS = [
@@ -55,12 +58,17 @@ class GuardrailEvaluator:
             text_replaced = text_replaced.replace(old, new)
         text_final = f"{text} {text_replaced}"
 
-        response = content_mod_client.analyze_text(
-            AnalyzeTextOptions(
-                text=text_final,
-                output_type=AnalyzeTextOutputType.EIGHT_SEVERITY_LEVELS,
+        try:
+            response = content_mod_client.analyze_text(
+                AnalyzeTextOptions(
+                    text=text_final,
+                    output_type=AnalyzeTextOutputType.EIGHT_SEVERITY_LEVELS,
+                )
             )
-        )
+        except Exception:
+            logger.exception("Content moderation API call failed")
+            # Fail closed: return max severity scores
+            return {"hate": 7, "self_harm": 7, "sexual": 7, "violence": 7}
 
         severities = {
             item.category: item.severity for item in response.categories_analysis
@@ -75,7 +83,7 @@ class GuardrailEvaluator:
     def detect_jailbreak(self, text: str) -> bool:
         """Detect prompt injection or jailbreak attempts."""
         content_mod_client = get_content_safety_client()
-        content_mod_endpoint = os.getenv("AZURE_CONTENT_MODERATOR_ENDPOINT")
+        content_mod_endpoint = os.environ["AZURE_CONTENT_MODERATOR_ENDPOINT"]
         api_version = os.getenv(
             "AZURE_CONTENT_MODERATOR_API_VERSION",
             "2024-09-01",
@@ -90,8 +98,13 @@ class GuardrailEvaluator:
             json={"userPrompt": text, "documents": []},
         )
 
-        response = content_mod_client.send_request(request)
-        return response.json()["userPromptAnalysis"]["attackDetected"]
+        try:
+            response = content_mod_client.send_request(request)
+            result = response.json()
+            return result.get("userPromptAnalysis", {}).get("attackDetected", True)
+        except Exception:
+            logger.exception("Jailbreak detection API call failed")
+            return True  # Fail closed
 
     def _is_content_moderation_detected(self, text: str) -> bool:
         """Check whether text crosses configured moderation thresholds."""

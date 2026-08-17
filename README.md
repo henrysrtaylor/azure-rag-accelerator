@@ -23,7 +23,6 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Tests: Mocked unit tests covering core RAG behavior without requiring Azure resources
 
 ## 📈 Future Roadmap
-- OOP updates to functions
 - Async
 
 ## 📂 Project Structure
