@@ -24,7 +24,7 @@ def test_chat_forwards_security_filter_and_feature_flags(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     build_security_filter = Mock(return_value="odata-filter")
-    run_inference = Mock(
+    run = Mock(
         return_value={
             "assistant_message": {"role": "assistant", "content": "answer"},
             "suggested_questions": [],
@@ -34,7 +34,7 @@ def test_chat_forwards_security_filter_and_feature_flags(
             "save_chat_history": True,
         }
     )
-    rag_pipeline = Mock(run_inference=run_inference)
+    rag_pipeline = Mock(run=run)
     rag_pipeline_class = Mock(return_value=rag_pipeline)
     monkeypatch.setattr(backend, "build_security_filter", build_security_filter)
     monkeypatch.setattr(backend, "RAGPipeline", rag_pipeline_class)
@@ -55,7 +55,7 @@ def test_chat_forwards_security_filter_and_feature_flags(
         enable_guardrail_checks=False,
         enable_suggested_questions=False,
     )
-    run_inference.assert_called_once_with(
+    run.assert_called_once_with(
         chat_history=[{"role": "user", "content": "question"}],
         security_filter="odata-filter",
     )
@@ -67,7 +67,7 @@ def test_chat_returns_standard_failure_response(
 ) -> None:
     monkeypatch.setattr(backend, "build_security_filter", lambda groups: None)
     rag_pipeline = Mock()
-    rag_pipeline.run_inference.side_effect = RuntimeError("Azure unavailable")
+    rag_pipeline.run.side_effect = RuntimeError("Azure unavailable")
     monkeypatch.setattr(backend, "RAGPipeline", Mock(return_value=rag_pipeline))
 
     result = asyncio.run(backend.chat(make_request()))

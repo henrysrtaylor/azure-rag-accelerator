@@ -72,27 +72,35 @@ class RAGPipeline:
 
         return None
 
-    def _run(
+    def run(
         self,
         chat_history: list[dict[str, str]],
-        security_filter: str | None,
-        *,
-        generate_questions: bool,
+        security_filter: str | None = None,
     ) -> dict:
-        """Run shared retrieval, generation, citations, and output guardrails.
+        """Run input controls, retrieval, generation, and output processing.
 
         Args:
             chat_history: Conversation messages with role and content keys.
             security_filter: OData filter for document-level security. None
                 bypasses document-level filtering.
-            generate_questions: Whether to generate suggested follow-up
-                questions for this run.
 
         Returns:
             Standard chat response containing the answer, suggestions,
             references, document context, guardrail state, and history-save
             decision.
         """
+        latest_user_query = next(
+            (
+                message["content"]
+                for message in reversed(chat_history)
+                if message["role"] == "user"
+            ),
+            "",
+        )
+        control_response = self._get_control_response(latest_user_query)
+        if control_response:
+            return control_response
+
         if self.enable_query_refinement:
             user_query = query_refinement(chat_history, app_config.large_deployed_model)
         else:
@@ -137,7 +145,7 @@ class RAGPipeline:
         else:
             generated_id_questions = (
                 generate_suggested_questions(chat_history, documents_joined)
-                if generate_questions
+                if self.enable_suggested_questions
                 else []
             )
             align_response = align_references_and_answer(
@@ -156,71 +164,3 @@ class RAGPipeline:
             guardrail_type=guardrail_response["guardrail_type"],
             save_chat_history=not model_guardrail_triggered,
         )
-
-    def run_inference(
-        self,
-        chat_history: list[dict[str, str]],
-        security_filter: str | None = None,
-    ) -> dict:
-        """Run the RAG pipeline for an inference request.
-
-        Applies input control checks before the shared RAG flow and excludes
-        document context from the returned response.
-
-        Args:
-            chat_history: Conversation messages with role and content keys.
-            security_filter: OData filter for document-level security. None
-                bypasses document-level filtering.
-
-        Returns:
-            Chat response containing the assistant message, suggested
-            questions, references, guardrail state, and history-save decision.
-        """
-        latest_user_query = next(
-            (
-                message["content"]
-                for message in reversed(chat_history)
-                if message["role"] == "user"
-            ),
-            "",
-        )
-        control_response = self._get_control_response(latest_user_query)
-        if control_response:
-            return control_response
-
-        chat_response = self._run(
-            chat_history,
-            security_filter,
-            generate_questions=self.enable_suggested_questions,
-        )
-        chat_response.pop("document_context")
-        return chat_response
-
-    def run_evaluation(
-        self,
-        chat_history: list[dict[str, str]],
-        security_filter: str | None = None,
-    ) -> dict:
-        """Run the RAG pipeline and return evaluation-specific fields.
-
-        Suggested questions are not generated, and inference-only guardrail
-        metadata is excluded from the returned response.
-
-        Args:
-            chat_history: Conversation messages with role and content keys.
-            security_filter: OData filter for document-level security. None
-                bypasses document-level filtering.
-
-        Returns:
-            Evaluation response containing the assistant message, references,
-            document context, and history-save decision.
-        """
-        chat_response = self._run(
-            chat_history,
-            security_filter,
-            generate_questions=False,
-        )
-        chat_response.pop("suggested_questions")
-        chat_response.pop("guardrail_triggered")
-        chat_response.pop("guardrail_type")
-        return chat_response

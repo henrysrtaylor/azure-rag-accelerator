@@ -13,6 +13,7 @@ import numpy as np
 from tqdm import tqdm
 
 from raglib.clients import load_env_vars
+from raglib.config import eval_config
 from raglib.eval import (
     f1_score,
     judge_coherence,
@@ -22,7 +23,6 @@ from raglib.eval import (
     normalize_score,
     precision_recall_at_k,
 )
-from raglib.config import eval_config
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
 from raglib.pipeline import RAGPipeline
@@ -58,7 +58,7 @@ aggregated_metrics = [
 
 results_individual: list[dict] = []
 security_filter = build_security_filter(None)
-rag_pipeline = RAGPipeline()
+rag_pipeline = RAGPipeline(enable_suggested_questions=False)
 
 print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
 
@@ -76,7 +76,7 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     ]
 
     start_time = time.time()
-    chat_response = rag_pipeline.run_evaluation(
+    chat_response = rag_pipeline.run(
         chat_history,
         security_filter=security_filter,
     )
