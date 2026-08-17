@@ -20,6 +20,17 @@ from openai import OpenAI
 def load_env_vars(path: str | None = None) -> None:
     """Load Azure resource and authentication values from a dotenv file."""
     load_dotenv(path, override=True)
+    required = [
+        "AZURE_FOUNDRY_ENDPOINT",
+        "AZURE_SEARCH_SERVICE_ENDPOINT",
+        "AZURE_CONTENT_MODERATOR_ENDPOINT",
+        "AZURE_SEARCH_PROJECT_PREFIX",
+    ]
+    missing = [v for v in required if not os.getenv(v)]
+    if missing:
+        raise EnvironmentError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
 
 
 @lru_cache(maxsize=1)
