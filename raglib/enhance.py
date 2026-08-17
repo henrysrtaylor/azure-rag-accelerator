@@ -7,13 +7,10 @@ import uuid
 
 from raglib.azure_ai import send_llm_request
 from raglib.config import app_config
-from raglib.prompts.markdown_loader import markdown_loader
-from raglib.prompts.prompts import QUERY_REFINEMENT_PROMPT
+from raglib.prompts.prompts import QUERY_REFINEMENT_PROMPT, SUGGESTED_QUESTIONS_PROMPT  
 
 
-###
 # Functions for query refinement and suggested questions generation
-###
 def query_refinement(messages: list, deployment: str) -> str:
     """
     Function to refine a user's query based on the conversation history.
@@ -48,10 +45,7 @@ def generate_suggested_questions(
     Returns:
         List of dicts with 'id' (UUID) and 'text' (question) for each suggestion.
     """
-    prompt_suggested_questions = markdown_loader(
-        "prompt_suggested_questions",
-        number_suggested_questions=app_config.suggested_questions,
-    )
+
     message_content = (
         "Context:\n"
         + documents_joined
@@ -64,7 +58,7 @@ def generate_suggested_questions(
     generate_suggested_questions_messages = [
         {
             "role": "system",
-            "content": prompt_suggested_questions + "\n\n" + message_content,
+            "content": SUGGESTED_QUESTIONS_PROMPT + "\n\n" + message_content,
         }
     ]
 
