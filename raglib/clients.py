@@ -12,7 +12,6 @@ from azure.identity import (
 )
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
-from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -28,9 +27,7 @@ def load_env_vars(path: str | None = None) -> None:
     ]
     missing = [v for v in required if not os.getenv(v)]
     if missing:
-        raise EnvironmentError(
-            f"Missing required environment variables: {', '.join(missing)}"
-        )
+        raise OSError(f"Missing required environment variables: {', '.join(missing)}")
 
 
 @lru_cache(maxsize=1)
