@@ -38,7 +38,6 @@ packages = ["raglib"]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
-    "pytest-env>=1.1.0",
     "ruff>=0.4.0",
 ]
 
@@ -66,9 +65,4 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-env = [ 
-    "AZURE_FOUNDRY_ENDPOINT=https://mock.foundry.azure.com",
-    "AZURE_SEARCH_SERVICE_ENDPOINT=https://mock.search.azure.com",
-    "AZURE_CONTENT_MODERATOR_ENDPOINT=https://mock.moderator.azure.com",
-    "AZURE_SEARCH_PROJECT_PREFIX=mock-prefix",
-]
+
