@@ -92,6 +92,17 @@ Uploads files from `data/documents/` to the ADLS Gen2 `documents` filesystem. Su
 .\upload_documents.ps1
 ```
 
+> **Governed subscriptions:** Organizational policies may disable the Storage
+> public endpoint, which prevents this local upload script from connecting.
+> If public access is permitted, you can add your current IP address to the
+> Storage firewall and upload through the Azure portal or rerun this script.
+> Portal uploads use the same Storage endpoint and will not bypass a policy
+> that disables public network access. The alternative is to configure private
+> endpoints, private DNS, and suitable VNet connectivity for upload and Azure
+> AI Search indexing; private networking is outside the scope of this
+> accelerator.
+
+
 ### 6.3. Deploy Function App Code
 
 > **DLS setup:** If you will use document-level security, create or identify the required Microsoft Entra security groups, then replace the placeholder values in [document_security_groups.json](../infrastructure/functions/document_security_groups.json) with their group **object IDs** before deploying the function. Users must belong to a matching group to retrieve the document. See [README_permissions.md](README_permissions.md) for Entra and token configuration.

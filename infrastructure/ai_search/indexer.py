@@ -36,14 +36,14 @@ from raglib.clients import (
     get_search_indexer_client,
     load_env_vars,
 )
-from raglib.config import config
+from raglib.config import app_config
 from raglib.log import configure_logging
-from raglib.prompts.markdown_loader import markdown_loader
+from raglib.prompts.prompts import VERBALISATION_IMAGE_PROMPT
 
 logger = logging.getLogger(__name__)
 
 configure_logging()
-prompt_verbalisation_image = markdown_loader("prompt_verbalisation_image")
+prompt_verbalisation_image = VERBALISATION_IMAGE_PROMPT
 
 load_env_vars()
 index_name, semantic_config_name = get_project_names()
@@ -92,8 +92,8 @@ skill_split = SplitSkill(
     description="Split skill to chunk documents",
     text_split_mode="pages",
     context="/document",
-    maximum_page_length=config.chunk_size,
-    page_overlap_length=config.chunk_overlap,
+    maximum_page_length=app_config.chunk_size,
+    page_overlap_length=app_config.chunk_overlap,
     inputs=[InputFieldMappingEntry(name="text", source="/document/extracted_content")],
     outputs=[OutputFieldMappingEntry(name="textItems", target_name="pages")],
 )
@@ -105,15 +105,15 @@ skill_text_embedding = AzureOpenAIEmbeddingSkill(
     inputs=[InputFieldMappingEntry(name="text", source="/document/pages/*")],
     outputs=[OutputFieldMappingEntry(name="embedding", target_name="text_vector")],
     resource_url=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-    model_name=config.embedding_deployed_model,
-    deployment_name=config.embedding_deployed_model,
-    dimensions=config.embedding_dimensions,
+    model_name=app_config.embedding_deployed_model,
+    deployment_name=app_config.embedding_deployed_model,
+    dimensions=app_config.embedding_dimensions,
 )
 
 skill_genai_prompt = ChatCompletionSkill(
     name="genAI-prompt-skill",
     description="GenAI Prompt skill for image verbalization",
-    uri=f"{os.getenv('AZURE_FOUNDRY_ENDPOINT')}/openai/deployments/{config.large_deployed_model}/chat/completions?api-version={os.getenv('AZURE_FOUNDRY_API_VERSION')}",
+    uri=f"{os.getenv('AZURE_FOUNDRY_ENDPOINT')}/openai/deployments/{app_config.large_deployed_model}/chat/completions?api-version={os.getenv('AZURE_FOUNDRY_API_VERSION')}",
     context="/document/normalized_images/*",
     inputs=[
         InputFieldMappingEntry(name="systemMessage", source=prompt_verbalisation_image),
@@ -140,9 +140,9 @@ skill_verbalized_embedding = AzureOpenAIEmbeddingSkill(
         OutputFieldMappingEntry(name="embedding", target_name="verbalizedImage_vector")
     ],
     resource_url=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-    model_name=config.embedding_deployed_model,
-    deployment_name=config.embedding_deployed_model,
-    dimensions=config.embedding_dimensions,
+    model_name=app_config.embedding_deployed_model,
+    deployment_name=app_config.embedding_deployed_model,
+    dimensions=app_config.embedding_dimensions,
 )
 
 skill_shaper = ShaperSkill(

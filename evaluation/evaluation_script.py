@@ -10,22 +10,19 @@ import time
 from pathlib import Path
 
 import numpy as np
-from eval_config import METRIC_THRESHOLDS
 from tqdm import tqdm
 
 from raglib.clients import load_env_vars
+from raglib.config import app_config, eval_config
 from raglib.eval import (
+    LLMJudge,
     f1_score,
-    judge_coherence,
-    judge_fluency,
-    judge_groundedness,
-    judge_relevance,
     normalize_score,
     precision_recall_at_k,
 )
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import evaluation_chat_logic
+from raglib.pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +55,8 @@ aggregated_metrics = [
 
 results_individual: list[dict] = []
 security_filter = build_security_filter(None)
+rag_pipeline = RAGPipeline(enable_suggested_questions=False)
+judge = LLMJudge(app_config.judge_model)
 
 print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
 
@@ -75,12 +74,13 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     ]
 
     start_time = time.time()
-    chat_response = evaluation_chat_logic(chat_history, security_filter=security_filter)
-    response = chat_response.get("assistant_message", {"content": ""}).get(
-        "content", ""
+    chat_response = rag_pipeline.run(
+        chat_history,
+        security_filter=security_filter,
     )
-    context = chat_response.get("document_context", "")
-    titles = [ref["text"] for ref in chat_response.get("references", [])]
+    response = chat_response.answer
+    context = chat_response.document_context
+    titles = [ref.text for ref in chat_response.references]
     latency = time.time() - start_time
 
     # Retrieval metrics (no LLM)
@@ -95,10 +95,10 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     f1 = f1_score(response, ground_truth)
 
     # LLM judges
-    groundedness_result = judge_groundedness(query, context, response)
-    relevance_result = judge_relevance(query, response)
-    coherence_result = judge_coherence(query, response)
-    fluency_result = judge_fluency(response)
+    groundedness_result = judge.groundedness(query, context, response)
+    relevance_result = judge.relevance(query, response)
+    coherence_result = judge.coherence(query, response)
+    fluency_result = judge.fluency(response)
 
     results_individual.append(
         {
@@ -156,7 +156,7 @@ def print_summary_table(metrics: dict) -> int:
 
     for metric_key in aggregated_metrics:
         score = metrics.get(metric_key, 0)
-        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        threshold = eval_config.metric_thresholds.get(metric_key, 0.5)
         status = "PASS" if score >= threshold else "FAIL"
         if status == "PASS":
             passed += 1
@@ -192,7 +192,7 @@ def save_results_json(results: list[dict], aggregated: dict, timestamp: str) -> 
     }
     for metric_key in aggregated_metrics:
         score = aggregated.get(metric_key, 0)
-        threshold = METRIC_THRESHOLDS.get(metric_key, 0.5)
+        threshold = eval_config.metric_thresholds.get(metric_key, 0.5)
         status = "PASS" if score >= threshold else "FAIL"
         if status == "PASS":
             summary["passed"] += 1

@@ -65,6 +65,11 @@ Before processing, the user's message is checked for:
 
 If any check fails, a static response is returned and processing stops.
 
+The backend creates a `RAGPipeline` with its feature flags, then calls
+`run(chat_history, security_filter)` for each request. Conversation
+history and security filters remain request-specific and are never stored on
+the shared pipeline instance.
+
 ### Step 3: Security Filter Construction
 User's security groups are converted to an OData filter:
 ```
@@ -111,6 +116,15 @@ The final response includes:
 - **assistant_message**: The answer text with numbered citations
 - **references**: List of cited documents with IDs
 - **suggested_questions**: Follow-up questions (if enabled)
+- **document_context**: Retrieved context used for generation
+- **guardrail_triggered / guardrail_type**: Safety outcome metadata
+- **save_chat_history**: Whether clients should retain the turn
+
+Evaluation uses the same `RAGPipeline.run()` result and reads the answer,
+references, and document context needed for scoring. It disables suggested
+question generation when constructing the pipeline. The FastAPI response model
+exposes only client-facing fields, so `document_context` is not serialized by
+the `/chat` endpoint.
 
 ### Step 12: Unexpected Failures
 The FastAPI `/chat` endpoint is the error boundary. It prints the exception traceback to the server console and returns the standard failure response so clients receive the same response shape as other chat outcomes.
@@ -209,10 +223,10 @@ User Query
 ## Supporting Systems
 
 ### Prompts (`raglib/prompts/`)
-Markdown templates loaded via `markdown_loader.py`. Separates prompt content from code for easy editing.
+Markdown templates are loaded via `markdown_loader.py`. Named static prompts and response text are preloaded by `prompts.py` and `responses.py`; the standard response dictionary is constructed separately by `raglib/chat_response.py`.
 
 ### Logging (`log.py`)
 Standard Python logging configuration. Executable processes initialize `configure_logging()` for timestamped logs sent to stdout; backend, permissions, index, indexer, and evaluation modules emit the actual log messages. The Azure Function uses standard Python logging without importing the application logging module, allowing the Azure Functions host to capture its logs directly.
 
-### Environment Setup (`config.py`)
+### Application Configuration (`config.py`)
 Centralized Azure client initialization using `DefaultAzureCredential`. Generates consistent naming for indexes and indexers based on project configuration.

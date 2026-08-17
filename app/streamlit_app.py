@@ -275,8 +275,5 @@ if prompt:
                         ]
                     )
 
-                if chat_response.get("end_conversation", False):
-                    st.session_state.messages = []
-
             except requests.RequestException as e:
                 st.error(f"Chat API error: {e}")

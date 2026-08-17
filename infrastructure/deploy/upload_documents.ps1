@@ -105,7 +105,15 @@ Write-Host "[4/4] Uploading documents..." -ForegroundColor Cyan
 
 Write-Host "  Uploading $FileCount file(s)..." -ForegroundColor Gray
 
-az storage fs create --account-name $StorageAccount --name $ContainerName --auth-mode login --output none 2>$null
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
+az storage fs create --account-name $StorageAccount --name $ContainerName --auth-mode login --output none
+if ($LASTEXITCODE -ne 0) {
+    $ErrorActionPreference = $previousErrorActionPreference
+    Write-Host "ERROR: Could not create or access filesystem '$ContainerName'" -ForegroundColor Red
+    exit 1
+}
 
 $uploaded = 0
 foreach ($File in $Files) {
@@ -114,7 +122,12 @@ foreach ($File in $Files) {
 
     if (-not [string]::IsNullOrWhiteSpace($parentPath)) {
         $directoryPath = $parentPath -replace "\\", "/"
-        az storage fs directory create --account-name $StorageAccount --file-system $ContainerName --name $directoryPath --auth-mode login --output none 2>$null
+        az storage fs directory create --account-name $StorageAccount --file-system $ContainerName --name $directoryPath --auth-mode login --output none
+        if ($LASTEXITCODE -ne 0) {
+            $ErrorActionPreference = $previousErrorActionPreference
+            Write-Host "ERROR: Could not create directory $directoryPath" -ForegroundColor Red
+            exit 1
+        }
     }
 
     $azArgs = @(
@@ -134,12 +147,15 @@ foreach ($File in $Files) {
     & az @azArgs
 
     if ($LASTEXITCODE -ne 0) {
+        $ErrorActionPreference = $previousErrorActionPreference
         Write-Host "ERROR: Upload failed for $relativePath" -ForegroundColor Red
         exit 1
     }
 
     $uploaded++
 }
+
+$ErrorActionPreference = $previousErrorActionPreference
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Upload failed" -ForegroundColor Red

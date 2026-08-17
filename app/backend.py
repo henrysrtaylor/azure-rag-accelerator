@@ -14,7 +14,8 @@ from pydantic import BaseModel, Field
 from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import failure_chat_response, inference_chat_logic
+from raglib.pipeline import PipelineResult, RAGPipeline
+from raglib.prompts.responses import FAILURE_RESPONSE
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8501").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -83,10 +84,6 @@ class ChatResponse(BaseModel):
     )
     save_chat_history: bool = Field(
         default=True, description="Whether clients should persist this turn"
-    )
-    end_conversation: bool = Field(
-        default=False,
-        description="Whether an interactive client should end the conversation",
     )
 
 
@@ -147,17 +144,34 @@ async def chat(request: ChatRequest) -> ChatResponse:
     try:
         chat_history_dict = [dict(msg) for msg in request.chat_history]
         security_filter = build_security_filter(request.security_groups)
-
-        return inference_chat_logic(
-            chat_history=chat_history_dict,
-            security_filter=security_filter,
+        rag_pipeline = RAGPipeline(
             enable_query_refinement=request.enable_query_refinement,
             enable_guardrail_checks=request.enable_guardrail_checks,
             enable_suggested_questions=request.enable_suggested_questions,
         )
+
+        result = rag_pipeline.run(
+            chat_history=chat_history_dict,
+            security_filter=security_filter,
+        )
+        return _to_chat_response(result)
     except Exception:
         logger.exception("Chat request failed")
-        return failure_chat_response()
+        return _to_chat_response(
+            PipelineResult(answer=FAILURE_RESPONSE, save_chat_history=False)
+        )
+
+
+def _to_chat_response(result: PipelineResult) -> ChatResponse:
+    """Convert a PipelineResult to the API response model."""
+    return ChatResponse(
+        assistant_message=Message(role="assistant", content=result.answer),
+        suggested_questions=result.suggested_questions,
+        references=[{"id": c.id, "text": c.text} for c in result.references],
+        guardrail_triggered=result.guardrail.triggered,
+        guardrail_type=result.guardrail.guardrail_type,
+        save_chat_history=result.save_chat_history,
+    )
 
 
 if __name__ == "__main__":
