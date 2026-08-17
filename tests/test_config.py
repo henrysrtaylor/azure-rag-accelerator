@@ -2,11 +2,11 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from raglib.config import AppConfig, app_config
+from raglib.config import app_config
 
 
 def test_config_has_valid_immutable_values() -> None:
-    assert isinstance(app_config, AppConfig)
+    assert app_config is not None
     assert isinstance(app_config.large_deployed_model, str)
     assert app_config.large_deployed_model
     assert app_config.chunk_size > 0

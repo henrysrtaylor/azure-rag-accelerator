@@ -15,9 +15,8 @@ from azure.core.rest import HttpRequest
 
 from raglib.azure_ai import send_llm_request
 from raglib.clients import get_content_safety_client
-from raglib.config import AppConfig, app_config
+from raglib.config import app_config
 from raglib.prompts.prompts import GUARDRAIL_ONTOPIC_PROMPT
-
 
 # Character substitutions for evasion detection (leetspeak, spacing tricks)
 REPLACE_WORDS = [
@@ -37,7 +36,7 @@ REPLACE_WORDS = [
 class GuardrailEvaluator:
     """Evaluate user input and model output against configured guardrails."""
 
-    def __init__(self, config: AppConfig = app_config) -> None:
+    def __init__(self, config=app_config) -> None:
         self.config = config
 
     def moderate_content(self, text: str) -> dict[str, int]:
@@ -103,10 +102,14 @@ class GuardrailEvaluator:
             {"role": "system", "content": GUARDRAIL_ONTOPIC_PROMPT},
             {"role": "user", "content": user_query},
         ]
-        on_topic = send_llm_request(
-            self.config.large_deployed_model,
-            messages,
-        ).strip().lower()
+        on_topic = (
+            send_llm_request(
+                self.config.large_deployed_model,
+                messages,
+            )
+            .strip()
+            .lower()
+        )
         return on_topic in (
             "false",
             "no",
@@ -125,9 +128,7 @@ class GuardrailEvaluator:
     ) -> dict[str, bool]:
         """Run applicable checks and return their detection flags."""
         results = {
-            "content_moderation_detected": self._is_content_moderation_detected(
-                query
-            )
+            "content_moderation_detected": self._is_content_moderation_detected(query)
         }
         if check_prompt_and_topic:
             results["prompt_injection_detected"] = self.detect_jailbreak(query)

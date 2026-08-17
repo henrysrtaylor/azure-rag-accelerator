@@ -12,7 +12,7 @@ def test_run_returns_empty_response_before_rag(
 ) -> None:
     rag_pipeline = pipeline.RAGPipeline()
     refine_query = Mock()
-    monkeypatch.setattr(pipeline, "query_refinement", refine_query)
+    monkeypatch.setattr(rag_pipeline.language_enhancer, "refine_query", refine_query)
 
     result = rag_pipeline.run(
         [{"role": "user", "content": "   "}],
@@ -26,11 +26,6 @@ def test_run_returns_empty_response_before_rag(
 def test_run_builds_complete_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        pipeline,
-        "query_refinement",
-        lambda history, deployment: "refined query",
-    )
     retrieve_documents = Mock(return_value={"Guide": {"documents": "Relevant context"}})
     monkeypatch.setattr(pipeline, "retrieve_documents", retrieve_documents)
     monkeypatch.setattr(
@@ -38,13 +33,18 @@ def test_run_builds_complete_response(
         "send_llm_request",
         lambda deployment, messages: f"Answer [{PLACEHOLDER_CITATION}1]",
     )
-    monkeypatch.setattr(
-        pipeline,
-        "generate_suggested_questions",
-        lambda history, context: [{"id": "question-1", "text": "More?"}],
-    )
 
     rag_pipeline = pipeline.RAGPipeline()
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "refine_query",
+        lambda messages: "refined query",
+    )
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "generate_suggested_questions",
+        lambda messages, documents: [{"id": "question-1", "text": "More?"}],
+    )
     no_guardrail = {
         "guardrail_triggered": False,
         "guardrail_type": None,
@@ -80,11 +80,6 @@ def test_model_guardrail_removes_context_references_and_suggestions(
 ) -> None:
     monkeypatch.setattr(
         pipeline,
-        "query_refinement",
-        lambda history, deployment: "query",
-    )
-    monkeypatch.setattr(
-        pipeline,
         "retrieve_documents",
         lambda query, security_filter=None: {
             "Guide": {"documents": "Sensitive model context"}
@@ -95,8 +90,19 @@ def test_model_guardrail_removes_context_references_and_suggestions(
         "send_llm_request",
         lambda deployment, messages: "blocked",
     )
+
+    rag_pipeline = pipeline.RAGPipeline()
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "refine_query",
+        lambda messages: "query",
+    )
     suggestions = Mock()
-    monkeypatch.setattr(pipeline, "generate_suggested_questions", suggestions)
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "generate_suggested_questions",
+        suggestions,
+    )
 
     rag_pipeline = pipeline.RAGPipeline()
     monkeypatch.setattr(
@@ -129,11 +135,6 @@ def test_run_skips_suggestions_when_disabled(
 ) -> None:
     monkeypatch.setattr(
         pipeline,
-        "query_refinement",
-        lambda history, deployment: "query",
-    )
-    monkeypatch.setattr(
-        pipeline,
         "retrieve_documents",
         lambda query, security_filter=None: {"Guide": {"documents": "Context"}},
     )
@@ -142,8 +143,19 @@ def test_run_skips_suggestions_when_disabled(
         "send_llm_request",
         lambda deployment, messages: f"Answer [{PLACEHOLDER_CITATION}1]",
     )
+
+    rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "refine_query",
+        lambda messages: "query",
+    )
     suggestions = Mock()
-    monkeypatch.setattr(pipeline, "generate_suggested_questions", suggestions)
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "generate_suggested_questions",
+        suggestions,
+    )
 
     rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
     no_guardrail = {
