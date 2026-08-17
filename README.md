@@ -23,7 +23,7 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Tests: Mocked unit tests covering core RAG behavior without requiring Azure resources
 
 ## 📈 Future Roadmap
-- Async
+- Async I/O — Convert Azure API calls and pipeline execution to async, enabling concurrent request handling.
 
 ## 📂 Project Structure
 

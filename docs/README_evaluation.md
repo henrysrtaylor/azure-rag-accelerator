@@ -31,7 +31,7 @@ data/
 └── golden_dataset.json    # Test queries with ground truth
 
 raglib/
-├── eval.py                # Judge functions and metrics
+├── eval.py                # LLMJudge class and retrieval metrics
 ├── config.py              # Typed app settings and evaluation thresholds
 └── prompts/evaluation/    # LLM judge prompts
     ├── prompt_eval_groundedness.md

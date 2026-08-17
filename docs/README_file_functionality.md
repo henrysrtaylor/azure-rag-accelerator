@@ -30,10 +30,10 @@ Constructs the standard chat response dictionary used by pipeline and applicatio
 Document-Level Security (DLS) implementation. `build_security_filter()` converts user security group GUIDs into an OData filter expression that restricts search results to documents the user is authorized to view.
 
 ### `guardrails.py`
-Content moderation and safety checks. Uses Azure AI Foundry Content Safety to detect harmful content (hate, violence, sexual, self-harm), prompt injection attempts, and off-topic input. `guardrails()` selects user-input or model-output checks through its `model` argument.
+Content moderation and safety checks. `GuardrailEvaluator` owns Azure Content Safety integration and LLM-based topic classification. Exposes `check_input()` for user messages (content moderation + jailbreak + off-topic) and `check_output()` for model responses (content moderation only). Returns a typed `GuardrailResult` dataclass. Fails closed on API errors.
 
 ### `enhance.py`
-Query enhancement utilities. Contains `query_refinement()` which rewrites user queries using conversation context to improve retrieval, and `generate_suggested_questions()` which uses an LLM to suggest relevant follow-up questions based on conversation history and retrieved documents.
+Query enhancement utilities. `LanguageEnhancer` owns the model deployment and provides `refine_query()` to rewrite user queries using conversation context, and `generate_suggested_questions()` to suggest follow-up questions based on conversation history and retrieved documents.
 
 ### `citations.py`
 Reference management for RAG responses. Creates citation placeholders for documents, formats context for the LLM, and post-processes responses to replace placeholders with numbered references linked to source documents.
