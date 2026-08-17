@@ -30,21 +30,21 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 ```
 azure-rag-accelerator/
 ├── raglib/                    # Core library
-│   ├── azure_ai.py            # Search & LLM functions
-│   ├── pipeline.py            # RAG orchestration
-│   ├── guardrails.py          # Content safety checks
+│   ├── azure_ai.py            # Search & LLM integrations
+│   ├── pipeline.py            # RAG orchestration (PipelineResult)
+│   ├── guardrails.py          # GuardrailEvaluator & GuardrailResult
 │   ├── permissions.py         # Document-level security
-│   ├── citations.py           # Reference management
-│   ├── enhance.py             # Query refinement & suggestions
+│   ├── citations.py           # Citation dataclass & reference management
+│   ├── enhance.py             # LanguageEnhancer (refinement & suggestions)
 │   ├── config.py              # Typed app and evaluation settings
-│   ├── clients.py             # Azure client factories
+│   ├── clients.py             # Azure client factories & env validation
 │   ├── log.py                 # Logging configuration (stdout)
-│   ├── eval.py                # LLM-as-judge evaluation functions
+│   ├── eval.py                # LLMJudge & retrieval metrics
 │   └── prompts/               # Agent & evaluation prompt templates
-├── app/                       # Application scripts
-│   ├── backend.py             # FastAPI REST API
+├── app/                       # Application layer
+│   ├── backend.py             # FastAPI REST API (Pydantic models)
 │   ├── streamlit_app.py       # Streamlit web UI
-│   └── cli_app.py             # CLI chat client (legacy)
+│   └── cli_app.py             # CLI chat client
 ├── evaluation/                # RAG evaluation
 │   ├── evaluation_script.py   # Quality metrics runner
 │   └── results/               # Timestamped evaluation outputs
@@ -55,8 +55,7 @@ azure-rag-accelerator/
 │   └── deploy/                # Azure CLI deployment scripts
 ├── docs/                      # Documentation
 ├── .env                       # Environment configuration
-├── requirements.txt           # Dependencies
-└── pyproject.toml             # Package configuration
+└── pyproject.toml             # Package & dependency configuration
 ```
 
 ## ⚙️ Client Feature Flags
