@@ -78,11 +78,9 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
         chat_history,
         security_filter=security_filter,
     )
-    response = chat_response.get("assistant_message", {"content": ""}).get(
-        "content", ""
-    )
-    context = chat_response.get("document_context", "")
-    titles = [ref["text"] for ref in chat_response.get("references", [])]
+    response = chat_response.answer
+    context = chat_response.document_context
+    titles = [ref.text for ref in chat_response.references]
     latency = time.time() - start_time
 
     # Retrieval metrics (no LLM)

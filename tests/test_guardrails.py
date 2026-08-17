@@ -38,8 +38,8 @@ def test_guardrail_decision_prioritizes_content_moderation(
 
     result = evaluator.check_input("input")
 
-    assert result["guardrail_type"] == "inappropriate_text"
-    assert result["guardrail_triggered"] is True
+    assert result.guardrail_type == "inappropriate_text"
+    assert result.triggered is True
 
 
 def test_output_check_only_runs_content_moderation(
@@ -62,6 +62,8 @@ def test_output_check_only_runs_content_moderation(
         lambda text: pytest.fail("output check ran topic detection"),
     )
 
+    from raglib.guardrails import GuardrailResult
+
     result = evaluator.check_output("model response")
 
-    assert result == {"guardrail_triggered": False, "guardrail_type": None}
+    assert result == GuardrailResult(triggered=False)

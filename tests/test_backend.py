@@ -4,7 +4,8 @@ from unittest.mock import Mock
 import pytest
 
 from app import backend
-from raglib.chat_response import create_chat_response
+from raglib.guardrails import GuardrailResult
+from raglib.pipeline import PipelineResult
 from raglib.prompts.responses import FAILURE_RESPONSE
 
 
@@ -25,14 +26,10 @@ def test_chat_forwards_security_filter_and_feature_flags(
 ) -> None:
     build_security_filter = Mock(return_value="odata-filter")
     run = Mock(
-        return_value={
-            "assistant_message": {"role": "assistant", "content": "answer"},
-            "suggested_questions": [],
-            "references": [],
-            "guardrail_triggered": False,
-            "guardrail_type": None,
-            "save_chat_history": True,
-        }
+        return_value=PipelineResult(
+            answer="answer",
+            guardrail=GuardrailResult(triggered=False),
+        )
     )
     rag_pipeline = Mock(run=run)
     rag_pipeline_class = Mock(return_value=rag_pipeline)
@@ -59,7 +56,7 @@ def test_chat_forwards_security_filter_and_feature_flags(
         chat_history=[{"role": "user", "content": "question"}],
         security_filter="odata-filter",
     )
-    assert result["assistant_message"]["content"] == "answer"
+    assert result.assistant_message.content == "answer"
 
 
 def test_chat_returns_standard_failure_response(
@@ -72,5 +69,5 @@ def test_chat_returns_standard_failure_response(
 
     result = asyncio.run(backend.chat(make_request()))
 
-    assert result == create_chat_response(FAILURE_RESPONSE)
-    assert result["save_chat_history"] is False
+    assert result.assistant_message.content == FAILURE_RESPONSE
+    assert result.save_chat_history is False

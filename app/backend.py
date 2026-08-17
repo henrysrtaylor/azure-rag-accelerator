@@ -11,11 +11,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from raglib.chat_response import create_chat_response
 from raglib.clients import load_env_vars
 from raglib.log import configure_logging
 from raglib.permissions import build_security_filter
-from raglib.pipeline import RAGPipeline
+from raglib.pipeline import PipelineResult, RAGPipeline
 from raglib.prompts.responses import FAILURE_RESPONSE
 
 logger = logging.getLogger(__name__)
@@ -151,13 +150,28 @@ async def chat(request: ChatRequest) -> ChatResponse:
             enable_suggested_questions=request.enable_suggested_questions,
         )
 
-        return rag_pipeline.run(
+        result = rag_pipeline.run(
             chat_history=chat_history_dict,
             security_filter=security_filter,
         )
+        return _to_chat_response(result)
     except Exception:
         logger.exception("Chat request failed")
-        return create_chat_response(FAILURE_RESPONSE)
+        return _to_chat_response(
+            PipelineResult(answer=FAILURE_RESPONSE, save_chat_history=False)
+        )
+
+
+def _to_chat_response(result: PipelineResult) -> ChatResponse:
+    """Convert a PipelineResult to the API response model."""
+    return ChatResponse(
+        assistant_message=Message(role="assistant", content=result.answer),
+        suggested_questions=result.suggested_questions,
+        references=[{"id": c.id, "text": c.text} for c in result.references],
+        guardrail_triggered=result.guardrail.triggered,
+        guardrail_type=result.guardrail.guardrail_type,
+        save_chat_history=result.save_chat_history,
+    )
 
 
 if __name__ == "__main__":

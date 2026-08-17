@@ -5,6 +5,7 @@ and on-topic classification using Azure Content Safety and LLM-as-judge.
 """
 
 import os
+from dataclasses import dataclass
 
 from azure.ai.contentsafety.models import (
     AnalyzeTextOptions,
@@ -31,6 +32,12 @@ REPLACE_WORDS = [
     ("1", "l"),
     ("$", "s"),
 ]
+
+
+@dataclass(frozen=True)
+class GuardrailResult:
+    triggered: bool
+    guardrail_type: str | None = None
 
 
 class GuardrailEvaluator:
@@ -135,12 +142,12 @@ class GuardrailEvaluator:
             results["off_topic_detected"] = self._is_off_topic(query)
         return results
 
-    def check_input(self, query: str) -> dict[str, bool | str | None]:
+    def check_input(self, query: str) -> GuardrailResult:
         """Run content, jailbreak, and topic checks for user input."""
         results = self._run_checks(query, check_prompt_and_topic=True)
         return self._to_result(results, include_input_checks=True)
 
-    def check_output(self, query: str) -> dict[str, bool | str | None]:
+    def check_output(self, query: str) -> GuardrailResult:
         """Run content moderation checks for model output."""
         results = self._run_checks(query, check_prompt_and_topic=False)
         return self._to_result(results, include_input_checks=False)
@@ -149,14 +156,11 @@ class GuardrailEvaluator:
         self,
         results: dict[str, bool],
         include_input_checks: bool,
-    ) -> dict[str, bool | str | None]:
+    ) -> GuardrailResult:
         if results["content_moderation_detected"]:
-            guardrail_type = "inappropriate_text"
-        elif include_input_checks and results["prompt_injection_detected"]:
-            guardrail_type = "jailbreak_attempt"
-        elif include_input_checks and results["off_topic_detected"]:
-            guardrail_type = "off_topic_query"
-        else:
-            return {"guardrail_triggered": False, "guardrail_type": None}
-
-        return {"guardrail_triggered": True, "guardrail_type": guardrail_type}
+            return GuardrailResult(triggered=True, guardrail_type="inappropriate_text")
+        if include_input_checks and results["prompt_injection_detected"]:
+            return GuardrailResult(triggered=True, guardrail_type="jailbreak_attempt")
+        if include_input_checks and results["off_topic_detected"]:
+            return GuardrailResult(triggered=True, guardrail_type="off_topic_query")
+        return GuardrailResult(triggered=False)
