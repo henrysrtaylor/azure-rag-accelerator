@@ -24,6 +24,7 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 
 ## 📈 Future Roadmap
 - OOP updates to functions
+- Async
 
 ## 📂 Project Structure
 

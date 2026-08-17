@@ -43,7 +43,7 @@ raglib/
 ## How It Works
 
 1. **Load golden dataset** - queries with expected answers and relevant documents
-2. **Run RAG pipeline** - call `RAGPipeline.run_evaluation()` with each query's chat history and security filter to get the response and retrieved document context
+2. **Run RAG pipeline** - call `RAGPipeline.run()` with each query's chat history and security filter, with suggested questions disabled, then read the response and retrieved document context needed for scoring
 3. **LLM judges** - call judge model to score groundedness, relevance, coherence, fluency
 4. **Retrieval metrics** - calculate precision/recall from retrieved vs. expected docs
 5. **Aggregate & report** - average scores, compare to thresholds, output results

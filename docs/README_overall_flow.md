@@ -66,7 +66,7 @@ Before processing, the user's message is checked for:
 If any check fails, a static response is returned and processing stops.
 
 The backend creates a `RAGPipeline` with its feature flags, then calls
-`run_inference(chat_history, security_filter)` for each request. Conversation
+`run(chat_history, security_filter)` for each request. Conversation
 history and security filters remain request-specific and are never stored on
 the shared pipeline instance.
 
@@ -116,11 +116,15 @@ The final response includes:
 - **assistant_message**: The answer text with numbered citations
 - **references**: List of cited documents with IDs
 - **suggested_questions**: Follow-up questions (if enabled)
+- **document_context**: Retrieved context used for generation
 - **guardrail_triggered / guardrail_type**: Safety outcome metadata
 - **save_chat_history**: Whether clients should retain the turn
 
-Evaluation uses `RAGPipeline.run_evaluation()`, which returns document context
-for scoring and omits suggested questions and inference-only guardrail metadata.
+Evaluation uses the same `RAGPipeline.run()` result and reads the answer,
+references, and document context needed for scoring. It disables suggested
+question generation when constructing the pipeline. The FastAPI response model
+exposes only client-facing fields, so `document_context` is not serialized by
+the `/chat` endpoint.
 
 ### Step 12: Unexpected Failures
 The FastAPI `/chat` endpoint is the error boundary. It prints the exception traceback to the server console and returns the standard failure response so clients receive the same response shape as other chat outcomes.

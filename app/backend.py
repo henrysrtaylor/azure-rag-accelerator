@@ -151,7 +151,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
             enable_suggested_questions=request.enable_suggested_questions,
         )
 
-        return rag_pipeline.run_inference(
+        return rag_pipeline.run(
             chat_history=chat_history_dict,
             security_filter=security_filter,
         )

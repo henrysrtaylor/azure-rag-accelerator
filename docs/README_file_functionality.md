@@ -21,7 +21,7 @@ The Azure Function intentionally uses the platform-provided logger instead of im
 Core retrieval and LLM interaction functions. `retrieve_documents()` performs hybrid search (vector + keyword + semantic) against Azure AI Search with optional DLS filtering. `send_llm_request()` calls Microsoft Foundry model deployments through the stable OpenAI SDK and v1 Chat Completions API.
 
 ### `pipeline.py`
-Main chat orchestration logic. `RAGPipeline` stores stable feature configuration and coordinates query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. `run_inference()` applies user guardrails and returns the client response, while `run_evaluation()` retains document context and removes inference-only fields. Chat history and document security filters are supplied per method call.
+Main chat orchestration logic. `RAGPipeline` stores stable feature configuration and coordinates input controls → query refinement → document retrieval → citation formatting → LLM response → model guardrails → suggested questions. Its single `run()` method returns the complete standard response, allowing API and evaluation callers to consume the fields they need. Chat history and document security filters are supplied per method call.
 
 ### `chat_response.py`
 Constructs the standard chat response dictionary used by pipeline and application outcomes.
