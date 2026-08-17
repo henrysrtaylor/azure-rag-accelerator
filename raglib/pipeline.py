@@ -12,7 +12,7 @@ from raglib.citations import (
     format_documents_with_citations,
 )
 from raglib.config import app_config
-from raglib.enhance import generate_suggested_questions, query_refinement
+from raglib.enhance import LanguageEnhancer
 from raglib.guardrails import GuardrailEvaluator
 from raglib.prompts.prompts import MAIN_AGENT_PROMPT
 from raglib.prompts.responses import (
@@ -40,6 +40,7 @@ class RAGPipeline:
         """
         self.prompt_main_agent = MAIN_AGENT_PROMPT
         self.guardrail_evaluator = GuardrailEvaluator()
+        self.language_enhancer = LanguageEnhancer()
         self.enable_query_refinement = enable_query_refinement
         self.enable_suggested_questions = enable_suggested_questions
         self.enable_guardrail_checks = enable_guardrail_checks
@@ -105,7 +106,7 @@ class RAGPipeline:
             return control_response
 
         if self.enable_query_refinement:
-            user_query = query_refinement(chat_history, app_config.large_deployed_model)
+            user_query = self.language_enhancer.refine_query(chat_history)
         else:
             user_query = next(
                 (
@@ -147,7 +148,9 @@ class RAGPipeline:
             documents_joined = ""
         else:
             generated_id_questions = (
-                generate_suggested_questions(chat_history, documents_joined)
+                self.language_enhancer.generate_suggested_questions(
+                    chat_history, documents_joined
+                )
                 if self.enable_suggested_questions
                 else []
             )
