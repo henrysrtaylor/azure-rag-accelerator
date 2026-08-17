@@ -11,12 +11,9 @@ Usage:
     from raglib.prompts.markdown_loader import markdown_loader
     from raglib.permissions import build_security_filter
     from raglib.eval import (
+        LLMJudge,
         precision_recall_at_k,
         f1_score,
-        judge_groundedness,
-        judge_relevance,
-        judge_coherence,
-        judge_fluency,
     )
 """
 

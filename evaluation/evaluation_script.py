@@ -13,13 +13,10 @@ import numpy as np
 from tqdm import tqdm
 
 from raglib.clients import load_env_vars
-from raglib.config import eval_config
+from raglib.config import app_config, eval_config
 from raglib.eval import (
+    LLMJudge,
     f1_score,
-    judge_coherence,
-    judge_fluency,
-    judge_groundedness,
-    judge_relevance,
     normalize_score,
     precision_recall_at_k,
 )
@@ -59,6 +56,7 @@ aggregated_metrics = [
 results_individual: list[dict] = []
 security_filter = build_security_filter(None)
 rag_pipeline = RAGPipeline(enable_suggested_questions=False)
+judge = LLMJudge(app_config.judge_model)
 
 print(f"\nRunning RAG evaluation on {len(qna_set)} examples...\n")
 
@@ -99,10 +97,10 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     f1 = f1_score(response, ground_truth)
 
     # LLM judges
-    groundedness_result = judge_groundedness(query, context, response)
-    relevance_result = judge_relevance(query, response)
-    coherence_result = judge_coherence(query, response)
-    fluency_result = judge_fluency(response)
+    groundedness_result = judge.groundedness(query, context, response)
+    relevance_result = judge.relevance(query, response)
+    coherence_result = judge.coherence(query, response)
+    fluency_result = judge.fluency(response)
 
     results_individual.append(
         {

@@ -144,8 +144,8 @@ class GuardrailEvaluator:
         results = self._run_checks(query, check_prompt_and_topic=False)
         return self._to_result(results, include_input_checks=False)
 
-    @staticmethod
     def _to_result(
+        self,
         results: dict[str, bool],
         include_input_checks: bool,
     ) -> dict[str, bool | str | None]:
