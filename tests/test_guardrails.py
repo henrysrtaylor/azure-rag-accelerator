@@ -1,6 +1,6 @@
 import pytest
 
-from raglib import guardrails as guardrails_module
+from raglib.guardrails import GuardrailEvaluator
 
 
 @pytest.mark.parametrize(
@@ -15,26 +15,53 @@ def test_content_moderation_thresholds(
     scores: dict[str, int],
     expected: bool,
 ) -> None:
-    monkeypatch.setattr(guardrails_module, "moderate_content", lambda text: scores)
+    evaluator = GuardrailEvaluator()
+    monkeypatch.setattr(evaluator, "moderate_content", lambda text: scores)
 
-    assert guardrails_module._is_content_moderation_detected("input") is expected
+    assert evaluator._is_content_moderation_detected("input") is expected
 
 
 def test_guardrail_decision_prioritizes_content_moderation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    evaluator = GuardrailEvaluator()
     results = {
         "content_moderation_detected": True,
         "prompt_injection_detected": True,
         "off_topic_detected": True,
     }
     monkeypatch.setattr(
-        guardrails_module,
-        "_run_guardrails",
+        evaluator,
+        "_run_checks",
         lambda query, check_prompt_and_topic: results,
     )
 
-    result = guardrails_module.guardrails("input")
+    result = evaluator.check_input("input")
 
     assert result["guardrail_type"] == "inappropriate_text"
     assert result["guardrail_triggered"] is True
+
+
+def test_output_check_only_runs_content_moderation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evaluator = GuardrailEvaluator()
+    monkeypatch.setattr(
+        evaluator,
+        "_is_content_moderation_detected",
+        lambda text: False,
+    )
+    monkeypatch.setattr(
+        evaluator,
+        "detect_jailbreak",
+        lambda text: pytest.fail("output check ran jailbreak detection"),
+    )
+    monkeypatch.setattr(
+        evaluator,
+        "_is_off_topic",
+        lambda text: pytest.fail("output check ran topic detection"),
+    )
+
+    result = evaluator.check_output("model response")
+
+    assert result == {"guardrail_triggered": False, "guardrail_type": None}

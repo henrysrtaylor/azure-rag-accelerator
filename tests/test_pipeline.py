@@ -40,19 +40,25 @@ def test_run_builds_complete_response(
     )
     monkeypatch.setattr(
         pipeline,
-        "guardrails",
-        lambda query, model=False: {
-            "guardrail_triggered": False,
-            "guardrail_type": None,
-        },
-    )
-    monkeypatch.setattr(
-        pipeline,
         "generate_suggested_questions",
         lambda history, context: [{"id": "question-1", "text": "More?"}],
     )
 
     rag_pipeline = pipeline.RAGPipeline()
+    no_guardrail = {
+        "guardrail_triggered": False,
+        "guardrail_type": None,
+    }
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_input",
+        lambda query: no_guardrail,
+    )
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_output",
+        lambda query: no_guardrail,
+    )
     result = rag_pipeline.run(
         [{"role": "user", "content": "original query"}],
         security_filter="security-filter",
@@ -89,22 +95,23 @@ def test_model_guardrail_removes_context_references_and_suggestions(
         "send_llm_request",
         lambda deployment, messages: "blocked",
     )
-    monkeypatch.setattr(
-        pipeline,
-        "guardrails",
-        lambda query, model=False: (
-            {
-                "guardrail_triggered": True,
-                "guardrail_type": "inappropriate_text",
-            }
-            if model
-            else {"guardrail_triggered": False, "guardrail_type": None}
-        ),
-    )
     suggestions = Mock()
     monkeypatch.setattr(pipeline, "generate_suggested_questions", suggestions)
 
     rag_pipeline = pipeline.RAGPipeline()
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_input",
+        lambda query: {"guardrail_triggered": False, "guardrail_type": None},
+    )
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_output",
+        lambda query: {
+            "guardrail_triggered": True,
+            "guardrail_type": "inappropriate_text",
+        },
+    )
     result = rag_pipeline.run(
         [{"role": "user", "content": "question"}],
     )
@@ -135,18 +142,25 @@ def test_run_skips_suggestions_when_disabled(
         "send_llm_request",
         lambda deployment, messages: f"Answer [{PLACEHOLDER_CITATION}1]",
     )
-    monkeypatch.setattr(
-        pipeline,
-        "guardrails",
-        lambda query, model=False: {
-            "guardrail_triggered": False,
-            "guardrail_type": None,
-        },
-    )
     suggestions = Mock()
     monkeypatch.setattr(pipeline, "generate_suggested_questions", suggestions)
 
-    result = pipeline.RAGPipeline(enable_suggested_questions=False).run(
+    rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
+    no_guardrail = {
+        "guardrail_triggered": False,
+        "guardrail_type": None,
+    }
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_input",
+        lambda query: no_guardrail,
+    )
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_output",
+        lambda query: no_guardrail,
+    )
+    result = rag_pipeline.run(
         [{"role": "user", "content": "question"}],
         security_filter="security-filter",
     )

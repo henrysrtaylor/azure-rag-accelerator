@@ -13,7 +13,7 @@ from raglib.citations import (
 )
 from raglib.config import app_config
 from raglib.enhance import generate_suggested_questions, query_refinement
-from raglib.guardrails import guardrails
+from raglib.guardrails import GuardrailEvaluator
 from raglib.prompts.prompts import MAIN_AGENT_PROMPT
 from raglib.prompts.responses import (
     EMPTY_QUERY_RESPONSE,
@@ -39,6 +39,7 @@ class RAGPipeline:
                 message before running the RAG flow.
         """
         self.prompt_main_agent = MAIN_AGENT_PROMPT
+        self.guardrail_evaluator = GuardrailEvaluator()
         self.enable_query_refinement = enable_query_refinement
         self.enable_suggested_questions = enable_suggested_questions
         self.enable_guardrail_checks = enable_guardrail_checks
@@ -62,7 +63,9 @@ class RAGPipeline:
             return create_chat_response(EMPTY_QUERY_RESPONSE)
 
         if self.enable_guardrail_checks:
-            user_guardrail_response = guardrails(latest_user_query, model=False)
+            user_guardrail_response = self.guardrail_evaluator.check_input(
+                latest_user_query
+            )
             if user_guardrail_response["guardrail_triggered"]:
                 guardrail_type = user_guardrail_response["guardrail_type"]
                 return create_chat_response(
@@ -135,7 +138,7 @@ class RAGPipeline:
             main_agent_messages + chat_history,
         )
 
-        guardrail_response = guardrails(model_answer, model=True)
+        guardrail_response = self.guardrail_evaluator.check_output(model_answer)
         model_guardrail_triggered = guardrail_response["guardrail_triggered"]
         if model_guardrail_triggered:
             model_answer = GUARDRAIL_RESPONSE
