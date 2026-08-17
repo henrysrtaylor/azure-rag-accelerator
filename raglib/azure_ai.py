@@ -4,10 +4,14 @@ Provides functions for document retrieval via Azure AI Search (hybrid search)
 and LLM interactions via the Microsoft Foundry OpenAI v1 API.
 """
 
+import logging
+
 from azure.search.documents.models import VectorizableTextQuery
 
 from raglib.clients import get_chat_client, get_project_names, get_search_client
-from raglib.config import config
+from raglib.config import app_config
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_documents(
@@ -29,26 +33,27 @@ def retrieve_documents(
 
     vector_query = VectorizableTextQuery(
         text=text_query,
-        k_nearest_neighbors=config.k_nearest_neighbors,
+        k_nearest_neighbors=app_config.k_nearest_neighbors,
         fields="content_embedding",
         exhaustive=False,
     )
 
     # Execute combined search - vector, keyword, and semantic
-    # Apply security filter if provided
-    results = search_client.search(
-        search_text=text_query,
-        search_fields=["content_text"],  # keyword search field
-        vector_queries=[vector_query],  # vector search
-        query_type="semantic",  # enable semantic ranking
-        semantic_configuration_name=semantic_config_name,  # use your semantic config
-        select=["content_text", "document_title", "document_date"],
-        filter=security_filter,  # Apply document-level security filter
-        top=config.number_documents_retrieve,
-    )
-
-    # process results to combine chunks by title and page number
-    results = list(results)
+    try:
+        results = search_client.search(
+            search_text=text_query,
+            search_fields=["content_text"],
+            vector_queries=[vector_query],
+            query_type="semantic",
+            semantic_configuration_name=semantic_config_name,
+            select=["content_text", "document_title", "document_date"],
+            filter=security_filter,
+            top=app_config.number_documents_retrieve,
+        )
+        results = list(results)
+    except Exception:
+        logger.exception("Azure AI Search retrieval failed")
+        return {}
     retrieved_documents = {}
     for title in list(
         set([doc["document_title"] for doc in results])
@@ -88,7 +93,7 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     response = chat_client.chat.completions.create(
         model=deployment_name,
         messages=normalized_messages,
-        reasoning_effort=config.reasoning_effort,
+        reasoning_effort=app_config.reasoning_effort,
     )
     content = response.choices[0].message.content
     return content.strip() if content else ""

@@ -23,28 +23,28 @@ A modular Retrieval-Augmented Generation (RAG) solution built on Azure AI servic
 - Tests: Mocked unit tests covering core RAG behavior without requiring Azure resources
 
 ## 📈 Future Roadmap
-- OOP updates to functions
+- Async I/O — Convert Azure API calls and pipeline execution to async, enabling concurrent request handling.
 
 ## 📂 Project Structure
 
 ```
 azure-rag-accelerator/
 ├── raglib/                    # Core library
-│   ├── azure_ai.py            # Search & LLM functions
-│   ├── pipeline.py            # RAG orchestration
-│   ├── guardrails.py          # Content safety checks
+│   ├── azure_ai.py            # Search & LLM integrations
+│   ├── pipeline.py            # RAG orchestration (PipelineResult)
+│   ├── guardrails.py          # GuardrailEvaluator & GuardrailResult
 │   ├── permissions.py         # Document-level security
-│   ├── citations.py           # Reference management
-│   ├── enhance.py             # Query refinement & suggestions
-│   ├── config.py              # Typed RAG and model settings
-│   ├── clients.py             # Azure client factories
+│   ├── citations.py           # Citation dataclass & reference management
+│   ├── enhance.py             # LanguageEnhancer (refinement & suggestions)
+│   ├── config.py              # Typed app and evaluation settings
+│   ├── clients.py             # Azure client factories & env validation
 │   ├── log.py                 # Logging configuration (stdout)
-│   ├── eval.py                # LLM-as-judge evaluation functions
+│   ├── eval.py                # LLMJudge & retrieval metrics
 │   └── prompts/               # Agent & evaluation prompt templates
-├── app/                       # Application scripts
-│   ├── backend.py             # FastAPI REST API
+├── app/                       # Application layer
+│   ├── backend.py             # FastAPI REST API (Pydantic models)
 │   ├── streamlit_app.py       # Streamlit web UI
-│   └── cli_app.py             # CLI chat client (legacy)
+│   └── cli_app.py             # CLI chat client
 ├── evaluation/                # RAG evaluation
 │   ├── evaluation_script.py   # Quality metrics runner
 │   └── results/               # Timestamped evaluation outputs
@@ -55,8 +55,7 @@ azure-rag-accelerator/
 │   └── deploy/                # Azure CLI deployment scripts
 ├── docs/                      # Documentation
 ├── .env                       # Environment configuration
-├── requirements.txt           # Dependencies
-└── pyproject.toml             # Package configuration
+└── pyproject.toml             # Package & dependency configuration
 ```
 
 ## ⚙️ Client Feature Flags
@@ -70,7 +69,7 @@ These feature flags are owned by each client and sent with every `/chat` request
 | Suggested questions | `OPTION_SUGGESTED_QUESTIONS` constant | Setup toggle | Generate follow-up question suggestions |
 | Document-level security | `OPTION_SECURITY_GROUPS` constant | Authentication toggle | Apply Entra ID group filtering |
 
-The API returns one consistent response shape for normal answers, empty input, exit commands, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients only display the response and follow its `save_chat_history` and `end_conversation` values.
+The API returns one consistent response shape for normal answers, empty input, guardrail outcomes, and unexpected failures. The backend prints unexpected exception tracebacks to its server console, then returns the standard failure response. Clients display the response and use `save_chat_history` to decide whether to retain the turn.
 
 Tunable values in `raglib/config.py`:
 

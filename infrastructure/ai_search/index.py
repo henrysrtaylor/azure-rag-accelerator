@@ -24,7 +24,7 @@ from azure.search.documents.indexes.models import (
 )
 
 from raglib.clients import get_project_names, get_search_index_client, load_env_vars
-from raglib.config import config
+from raglib.config import app_config
 from raglib.log import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ fields = [
     SearchField(
         name="content_embedding",
         type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-        vector_search_dimensions=config.embedding_dimensions,
+        vector_search_dimensions=app_config.embedding_dimensions,
         vector_search_profile_name="HnswProfile",
         searchable=True,
     ),
@@ -104,8 +104,8 @@ vector_search = VectorSearch(
             kind="azureOpenAI",
             parameters=AzureOpenAIVectorizerParameters(
                 resource_url=os.getenv("AZURE_FOUNDRY_ENDPOINT"),
-                model_name=config.embedding_deployed_model,
-                deployment_name=config.embedding_deployed_model,
+                model_name=app_config.embedding_deployed_model,
+                deployment_name=app_config.embedding_deployed_model,
             ),
         )
     ],

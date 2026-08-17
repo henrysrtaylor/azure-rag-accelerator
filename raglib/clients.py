@@ -12,7 +12,6 @@ from azure.identity import (
 )
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient, SearchIndexerClient
-from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -20,6 +19,15 @@ from openai import OpenAI
 def load_env_vars(path: str | None = None) -> None:
     """Load Azure resource and authentication values from a dotenv file."""
     load_dotenv(path, override=True)
+    required = [
+        "AZURE_FOUNDRY_ENDPOINT",
+        "AZURE_SEARCH_SERVICE_ENDPOINT",
+        "AZURE_CONTENT_MODERATOR_ENDPOINT",
+        "AZURE_SEARCH_PROJECT_PREFIX",
+    ]
+    missing = [v for v in required if not os.getenv(v)]
+    if missing:
+        raise OSError(f"Missing required environment variables: {', '.join(missing)}")
 
 
 @lru_cache(maxsize=1)
@@ -96,13 +104,3 @@ def get_content_safety_client() -> ContentSafetyClient:
         endpoint=os.getenv("AZURE_CONTENT_MODERATOR_ENDPOINT"),
         credential=_get_credential(),
     )
-
-
-def get_storage_file_system_client(file_system_name: str) -> FileSystemClient:
-    """Get an ADLS Gen2 filesystem client."""
-    load_env_vars()
-    service_client = DataLakeServiceClient(
-        account_url=os.getenv("STORAGE_DFS_ACCOUNT_URL"),
-        credential=_get_credential(),
-    )
-    return service_client.get_file_system_client(file_system_name)
