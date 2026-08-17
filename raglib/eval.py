@@ -11,7 +11,6 @@ structured scores (1-5) with reasoning.
 import json
 
 from raglib.azure_ai import send_llm_request
-from raglib.config import app_config
 from raglib.prompts.prompts import (
     EVAL_COHERENCE_PROMPT,
     EVAL_FLUENCY_PROMPT,
@@ -78,78 +77,15 @@ def f1_score(response: str, ground_truth: str) -> float:
     return 2 * (precision * recall) / (precision + recall)
 
 
-# LLM Judge Helpers
-# Note: _call_judge exists to handle JSON response parsing in one place.
-# LLMs may wrap JSON in markdown code blocks (```json...```) which must be stripped,
-# and we need consistent error handling when parsing fails. Without this helper,
-# we'd duplicate ~25 lines of parsing logic in each judge function.
-def _call_judge(system_prompt: str, user_content: str) -> dict:
-    """
-    Call the LLM judge and parse the JSON response.
+class LLMJudge:
+    """Evaluate RAG responses using an LLM judge model."""
 
-    Args:
-        system_prompt: The evaluation criteria and instructions.
-        user_content: The content to evaluate (query, response, context, etc.).
+    def __init__(self, deployment: str) -> None:
+        self.deployment = deployment
 
-    Returns:
-        Dict with 'score' (1-5) and 'reasoning' keys.
-        Returns {'score': None, 'reasoning': 'Error: ...'} on failure.
-    """
-    deployment = app_config.judge_model
-
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_content},
-    ]
-
-    try:
-        response = send_llm_request(deployment, messages)
-
-        # Try to parse JSON from response
-        # Handle potential markdown code blocks
-        response_text = response.strip()
-        if response_text.startswith("```"):
-            # Extract content between code fences
-            lines = response_text.split("\n")
-            json_lines = []
-            in_block = False
-            for line in lines:
-                if line.startswith("```") and not in_block:
-                    in_block = True
-                    continue
-                elif line.startswith("```") and in_block:
-                    break
-                elif in_block:
-                    json_lines.append(line)
-            response_text = "\n".join(json_lines)
-
-        result = json.loads(response_text)
-        return {"score": result.get("score"), "reasoning": result.get("reasoning", "")}
-    except json.JSONDecodeError as e:
-        return {
-            "score": None,
-            "reasoning": f"JSON parse error: {e}. Raw: {response[:200]}",
-        }
-    except Exception as e:
-        return {"score": None, "reasoning": f"Error: {e}"}
-
-
-# LLM Judge Functions
-def judge_groundedness(query: str, context: str, response: str) -> dict:
-    """
-    Evaluate whether the response is grounded in the provided context.
-
-    Args:
-        query: The user's question.
-        context: The retrieved context/documents.
-        response: The AI-generated answer.
-
-    Returns:
-        Dict with 'score' (1-5, where 5=fully grounded) and 'reasoning'.
-    """
-    system_prompt = EVAL_GROUNDEDNESS_PROMPT
-
-    user_content = f"""## Query
+    def groundedness(self, query: str, context: str, response: str) -> dict:
+        """Score how well the response is grounded in the provided context."""
+        user_content = f"""## Query
 {query}
 
 ## Context
@@ -157,70 +93,70 @@ def judge_groundedness(query: str, context: str, response: str) -> dict:
 
 ## Response
 {response}"""
+        return self._evaluate(EVAL_GROUNDEDNESS_PROMPT, user_content)
 
-    return _call_judge(system_prompt, user_content)
-
-
-def judge_relevance(query: str, response: str) -> dict:
-    """
-    Evaluate whether the response is relevant to the user's query.
-
-    Args:
-        query: The user's question.
-        response: The AI-generated answer.
-
-    Returns:
-        Dict with 'score' (1-5, where 5=highly relevant) and 'reasoning'.
-    """
-    system_prompt = EVAL_RELEVANCE_PROMPT
-
-    user_content = f"""## Query
+    def relevance(self, query: str, response: str) -> dict:
+        """Score how relevant the response is to the query."""
+        user_content = f"""## Query
 {query}
 
 ## Response
 {response}"""
+        return self._evaluate(EVAL_RELEVANCE_PROMPT, user_content)
 
-    return _call_judge(system_prompt, user_content)
-
-
-def judge_coherence(query: str, response: str) -> dict:
-    """
-    Evaluate the logical consistency and flow of the response.
-
-    Args:
-        query: The user's question (for context).
-        response: The AI-generated answer.
-
-    Returns:
-        Dict with 'score' (1-5, where 5=perfectly coherent) and 'reasoning'.
-    """
-    system_prompt = EVAL_COHERENCE_PROMPT
-
-    user_content = f"""## Query
+    def coherence(self, query: str, response: str) -> dict:
+        """Score the logical consistency and flow of the response."""
+        user_content = f"""## Query
 {query}
 
 ## Response
 {response}"""
+        return self._evaluate(EVAL_COHERENCE_PROMPT, user_content)
 
-    return _call_judge(system_prompt, user_content)
-
-
-def judge_fluency(response: str) -> dict:
-    """
-    Evaluate the natural language quality of the response.
-
-    Args:
-        response: The AI-generated answer.
-
-    Returns:
-        Dict with 'score' (1-5, where 5=excellent fluency) and 'reasoning'.
-    """
-    system_prompt = EVAL_FLUENCY_PROMPT
-
-    user_content = f"""## Response
+    def fluency(self, response: str) -> dict:
+        """Score the natural language quality of the response."""
+        user_content = f"""## Response
 {response}"""
+        return self._evaluate(EVAL_FLUENCY_PROMPT, user_content)
 
-    return _call_judge(system_prompt, user_content)
+    def _evaluate(self, system_prompt: str, user_content: str) -> dict:
+        """Send a judge request and return parsed score and reasoning."""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+        try:
+            response = send_llm_request(self.deployment, messages)
+            response_text = self._parse_response(response)
+            result = json.loads(response_text)
+            return {
+                "score": result.get("score"),
+                "reasoning": result.get("reasoning", ""),
+            }
+        except json.JSONDecodeError as e:
+            return {
+                "score": None,
+                "reasoning": f"JSON parse error: {e}. Raw: {response[:200]}",
+            }
+        except Exception as e:
+            return {"score": None, "reasoning": f"Error: {e}"}
+
+    def _parse_response(self, response: str) -> str:
+        """Strip markdown code fences if present."""
+        text = response.strip()
+        if not text.startswith("```"):
+            return text
+        lines = text.split("\n")
+        json_lines = []
+        in_block = False
+        for line in lines:
+            if line.startswith("```") and not in_block:
+                in_block = True
+            elif line.startswith("```") and in_block:
+                break
+            elif in_block:
+                json_lines.append(line)
+        return "\n".join(json_lines)
 
 
 def normalize_score(score: int, scale: int = 5) -> float:
