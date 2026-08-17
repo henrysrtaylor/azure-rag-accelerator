@@ -4,21 +4,37 @@ Coordinates document retrieval, LLM generation, citations, guardrails,
 and suggested questions into a unified chat response.
 """
 
+from dataclasses import dataclass, field
+
 from raglib.azure_ai import retrieve_documents, send_llm_request
-from raglib.chat_response import create_chat_response
 from raglib.citations import (
+    Citation,
     align_references_and_answer,
     create_text_citation_map,
     format_documents_with_citations,
 )
 from raglib.config import app_config
 from raglib.enhance import LanguageEnhancer
-from raglib.guardrails import GuardrailEvaluator
+from raglib.guardrails import GuardrailEvaluator, GuardrailResult
 from raglib.prompts.prompts import MAIN_AGENT_PROMPT
 from raglib.prompts.responses import (
     EMPTY_QUERY_RESPONSE,
     GUARDRAIL_RESPONSE,
 )
+
+
+@dataclass
+class PipelineResult:
+    """Complete result of a RAG pipeline run."""
+
+    answer: str
+    suggested_questions: list[dict[str, str]] = field(default_factory=list)
+    references: list[Citation] = field(default_factory=list)
+    document_context: str = ""
+    guardrail: GuardrailResult = field(
+        default_factory=lambda: GuardrailResult(triggered=False)
+    )
+    save_chat_history: bool = True
 
 
 class RAGPipeline:
@@ -48,30 +64,27 @@ class RAGPipeline:
     def _get_control_response(
         self,
         latest_user_query: str,
-    ) -> dict | None:
+    ) -> PipelineResult | None:
         """Return an early response for empty input or a triggered guardrail.
 
         Args:
             latest_user_query: Most recent user message.
 
         Returns:
-            A standard chat response when processing should stop, otherwise
-            None.
+            A PipelineResult when processing should stop, otherwise None.
         """
         latest_user_query = latest_user_query.strip()
 
         if not latest_user_query:
-            return create_chat_response(EMPTY_QUERY_RESPONSE)
+            return PipelineResult(answer=EMPTY_QUERY_RESPONSE, save_chat_history=False)
 
         if self.enable_guardrail_checks:
-            user_guardrail_response = self.guardrail_evaluator.check_input(
-                latest_user_query
-            )
-            if user_guardrail_response["guardrail_triggered"]:
-                guardrail_type = user_guardrail_response["guardrail_type"]
-                return create_chat_response(
-                    GUARDRAIL_RESPONSE,
-                    guardrail_type=guardrail_type,
+            input_result = self.guardrail_evaluator.check_input(latest_user_query)
+            if input_result.triggered:
+                return PipelineResult(
+                    answer=GUARDRAIL_RESPONSE,
+                    guardrail=input_result,
+                    save_chat_history=False,
                 )
 
         return None
@@ -80,7 +93,7 @@ class RAGPipeline:
         self,
         chat_history: list[dict[str, str]],
         security_filter: str | None = None,
-    ) -> dict:
+    ) -> PipelineResult:
         """Run input controls, retrieval, generation, and output processing.
 
         Args:
@@ -89,9 +102,8 @@ class RAGPipeline:
                 bypasses document-level filtering.
 
         Returns:
-            Standard chat response containing the answer, suggestions,
-            references, document context, guardrail state, and history-save
-            decision.
+            PipelineResult containing the answer, references, suggestions,
+            document context, guardrail state, and history-save decision.
         """
         latest_user_query = next(
             (
@@ -139,34 +151,31 @@ class RAGPipeline:
             main_agent_messages + chat_history,
         )
 
-        guardrail_response = self.guardrail_evaluator.check_output(model_answer)
-        model_guardrail_triggered = guardrail_response["guardrail_triggered"]
-        if model_guardrail_triggered:
-            model_answer = GUARDRAIL_RESPONSE
-            generated_id_questions = []
-            text_citation_map = []
-            documents_joined = ""
-        else:
-            generated_id_questions = (
-                self.language_enhancer.generate_suggested_questions(
-                    chat_history, documents_joined
-                )
-                if self.enable_suggested_questions
-                else []
+        output_result = self.guardrail_evaluator.check_output(model_answer)
+        if output_result.triggered:
+            return PipelineResult(
+                answer=GUARDRAIL_RESPONSE,
+                guardrail=output_result,
+                save_chat_history=False,
             )
-            align_response = align_references_and_answer(
-                model_answer,
-                text_citation_map,
-            )
-            model_answer = align_response["answer"]
-            text_citation_map = align_response["text_citation_map"]
 
-        return create_chat_response(
+        generated_id_questions = (
+            self.language_enhancer.generate_suggested_questions(
+                chat_history, documents_joined
+            )
+            if self.enable_suggested_questions
+            else []
+        )
+        model_answer, text_citation_map = align_references_and_answer(
             model_answer,
+            text_citation_map,
+        )
+
+        return PipelineResult(
+            answer=model_answer,
             suggested_questions=generated_id_questions,
             references=text_citation_map,
             document_context=documents_joined,
-            guardrail_triggered=model_guardrail_triggered,
-            guardrail_type=guardrail_response["guardrail_type"],
-            save_chat_history=not model_guardrail_triggered,
+            guardrail=output_result,
+            save_chat_history=True,
         )

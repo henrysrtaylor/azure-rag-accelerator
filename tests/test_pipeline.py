@@ -3,7 +3,8 @@ from unittest.mock import Mock
 import pytest
 
 from raglib import pipeline
-from raglib.citations import PLACEHOLDER_CITATION
+from raglib.citations import PLACEHOLDER_CITATION, Citation
+from raglib.guardrails import GuardrailResult
 from raglib.prompts.responses import EMPTY_QUERY_RESPONSE, GUARDRAIL_RESPONSE
 
 
@@ -18,8 +19,8 @@ def test_run_returns_empty_response_before_rag(
         [{"role": "user", "content": "   "}],
     )
 
-    assert result["assistant_message"]["content"] == EMPTY_QUERY_RESPONSE
-    assert result["save_chat_history"] is False
+    assert result.answer == EMPTY_QUERY_RESPONSE
+    assert result.save_chat_history is False
     refine_query.assert_not_called()
 
 
@@ -45,10 +46,7 @@ def test_run_builds_complete_response(
         "generate_suggested_questions",
         lambda messages, documents: [{"id": "question-1", "text": "More?"}],
     )
-    no_guardrail = {
-        "guardrail_triggered": False,
-        "guardrail_type": None,
-    }
+    no_guardrail = GuardrailResult(triggered=False)
     monkeypatch.setattr(
         rag_pipeline.guardrail_evaluator,
         "check_input",
@@ -68,11 +66,11 @@ def test_run_builds_complete_response(
         "refined query",
         security_filter="security-filter",
     )
-    assert result["assistant_message"]["content"] == "Answer [1]"
-    assert result["references"] == [{"id": 1, "text": "Guide"}]
-    assert result["suggested_questions"][0]["text"] == "More?"
-    assert "Relevant context" in result["document_context"]
-    assert result["save_chat_history"] is True
+    assert result.answer == "Answer [1]"
+    assert result.references == [Citation(id=1, text="Guide")]
+    assert result.suggested_questions[0]["text"] == "More?"
+    assert "Relevant context" in result.document_context
+    assert result.save_chat_history is True
 
 
 def test_model_guardrail_removes_context_references_and_suggestions(
@@ -103,30 +101,27 @@ def test_model_guardrail_removes_context_references_and_suggestions(
         "generate_suggested_questions",
         suggestions,
     )
-
-    rag_pipeline = pipeline.RAGPipeline()
     monkeypatch.setattr(
         rag_pipeline.guardrail_evaluator,
         "check_input",
-        lambda query: {"guardrail_triggered": False, "guardrail_type": None},
+        lambda query: GuardrailResult(triggered=False),
     )
     monkeypatch.setattr(
         rag_pipeline.guardrail_evaluator,
         "check_output",
-        lambda query: {
-            "guardrail_triggered": True,
-            "guardrail_type": "inappropriate_text",
-        },
+        lambda query: GuardrailResult(
+            triggered=True, guardrail_type="inappropriate_text"
+        ),
     )
     result = rag_pipeline.run(
         [{"role": "user", "content": "question"}],
     )
 
-    assert result["assistant_message"]["content"] == GUARDRAIL_RESPONSE
-    assert result["references"] == []
-    assert result["suggested_questions"] == []
-    assert result["document_context"] == ""
-    assert result["save_chat_history"] is False
+    assert result.answer == GUARDRAIL_RESPONSE
+    assert result.references == []
+    assert result.suggested_questions == []
+    assert result.document_context == ""
+    assert result.save_chat_history is False
     suggestions.assert_not_called()
 
 
@@ -156,12 +151,7 @@ def test_run_skips_suggestions_when_disabled(
         "generate_suggested_questions",
         suggestions,
     )
-
-    rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
-    no_guardrail = {
-        "guardrail_triggered": False,
-        "guardrail_type": None,
-    }
+    no_guardrail = GuardrailResult(triggered=False)
     monkeypatch.setattr(
         rag_pipeline.guardrail_evaluator,
         "check_input",
@@ -177,8 +167,8 @@ def test_run_skips_suggestions_when_disabled(
         security_filter="security-filter",
     )
 
-    assert result["assistant_message"]["content"] == "Answer [1]"
-    assert result["references"] == [{"id": 1, "text": "Guide"}]
-    assert "Context" in result["document_context"]
-    assert result["suggested_questions"] == []
+    assert result.answer == "Answer [1]"
+    assert result.references == [Citation(id=1, text="Guide")]
+    assert "Context" in result.document_context
+    assert result.suggested_questions == []
     suggestions.assert_not_called()
