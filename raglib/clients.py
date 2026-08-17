@@ -96,13 +96,3 @@ def get_content_safety_client() -> ContentSafetyClient:
         endpoint=os.getenv("AZURE_CONTENT_MODERATOR_ENDPOINT"),
         credential=_get_credential(),
     )
-
-
-def get_storage_file_system_client(file_system_name: str) -> FileSystemClient:
-    """Get an ADLS Gen2 filesystem client."""
-    load_env_vars()
-    service_client = DataLakeServiceClient(
-        account_url=os.getenv("STORAGE_DFS_ACCOUNT_URL"),
-        credential=_get_credential(),
-    )
-    return service_client.get_file_system_client(file_system_name)
