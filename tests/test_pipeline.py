@@ -24,6 +24,53 @@ def test_run_returns_empty_response_before_rag(
     refine_query.assert_not_called()
 
 
+def test_run_uses_main_agent_prompt_and_source_material(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        pipeline,
+        "retrieve_documents",
+        lambda query, security_filter=None: {"Guide": {"documents": "Relevant"}},
+    )
+
+    captured: dict[str, object] = {}
+
+    def capture_send(deployment, messages, model_parameters=None):
+        captured["messages"] = messages
+        return f"Answer [{PLACEHOLDER_CITATION}1]"
+
+    monkeypatch.setattr(pipeline, "send_llm_request", capture_send)
+
+    rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
+    # The shared context is baked into the main agent prompt at load time;
+    # use a sentinel to stand in for the loaded prompt.
+    rag_pipeline.prompt_main_agent = "MAIN AGENT PROMPT\n\nAdditional Context:\n- Prod."
+    monkeypatch.setattr(
+        rag_pipeline.language_enhancer,
+        "refine_query",
+        lambda messages: "query",
+    )
+    no_guardrail = GuardrailResult(triggered=False)
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_input",
+        lambda query: no_guardrail,
+    )
+    monkeypatch.setattr(
+        rag_pipeline.guardrail_evaluator,
+        "check_output",
+        lambda query: no_guardrail,
+    )
+
+    rag_pipeline.run([{"role": "user", "content": "question"}])
+
+    system_prompt = captured["messages"][0]["content"]
+    assert "MAIN AGENT PROMPT" in system_prompt
+    assert "Additional Context:" in system_prompt
+    assert "- Prod." in system_prompt
+    assert "Source Material:" in system_prompt
+
+
 def test_run_builds_complete_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

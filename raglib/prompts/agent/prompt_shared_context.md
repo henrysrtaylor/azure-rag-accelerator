@@ -1,0 +1,3 @@
+- The knowledge base covers Azure and Azure development topics.
+- "Prod" and "production" refer to the same live customer-facing environment.
+- Prefer official Azure service names over informal abbreviations (for example, "Azure Kubernetes Service" for "AKS").
