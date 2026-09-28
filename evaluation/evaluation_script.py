@@ -47,6 +47,7 @@ aggregated_metrics = [
     "fluency",
     "groundedness",
     "relevance",
+    "similarity",
     "retrieval_precision_at_1",
     "retrieval_precision_at_5",
     "retrieval_recall_at_1",
@@ -99,6 +100,7 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
     relevance_result = judge.relevance(query, response)
     coherence_result = judge.coherence(query, response)
     fluency_result = judge.fluency(response)
+    similarity_result = judge.similarity(query, response, ground_truth)
 
     results_individual.append(
         {
@@ -113,6 +115,7 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
             "relevance": normalize_score(relevance_result["score"]),
             "coherence": normalize_score(coherence_result["score"]),
             "fluency": normalize_score(fluency_result["score"]),
+            "similarity": normalize_score(similarity_result["score"]),
             "f1_score": f1,
             "retrieval_precision_at_1": p1,
             "retrieval_precision_at_5": p5,
@@ -123,6 +126,7 @@ for eval_example in tqdm(qna_set, desc="Evaluating", unit="query"):
             "relevance_reason": relevance_result["reasoning"],
             "coherence_reason": coherence_result["reasoning"],
             "fluency_reason": fluency_result["reasoning"],
+            "similarity_reason": similarity_result["reasoning"],
         }
     )
 
@@ -147,6 +151,7 @@ def print_summary_table(metrics: dict) -> int:
         "relevance": "Relevance",
         "fluency": "Fluency",
         "coherence": "Coherence",
+        "similarity": "Similarity",
         "f1_score": "F1 Score",
         "retrieval_precision_at_1": "Precision@1",
         "retrieval_precision_at_5": "Precision@5",
