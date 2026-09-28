@@ -33,7 +33,7 @@ Document-Level Security (DLS) implementation. `build_security_filter()` converts
 Content moderation and safety checks. `GuardrailEvaluator` owns Azure Content Safety integration and LLM-based topic classification. Exposes `check_input()` for user messages (content moderation + jailbreak + off-topic) and `check_output()` for model responses (content moderation only). Returns a typed `GuardrailResult` dataclass. Fails closed on API errors.
 
 ### `enhance.py`
-Query enhancement utilities. `LanguageEnhancer` owns the model deployment and provides `refine_query()` to rewrite user queries using conversation context, and `generate_suggested_questions()` to suggest follow-up questions based on conversation history and retrieved documents.
+Query enhancement utilities. `LanguageEnhancer` owns the model deployment and provides `refine_query()` to rewrite user queries using conversation context plus editable, shared use-case background context (`prompt_shared_context.md`, also used by the main agent) that supplies facts not held in the indexed documents, and `generate_suggested_questions()` to suggest follow-up questions based on conversation history and retrieved documents.
 
 ### `citations.py`
 Reference management for RAG responses. Creates citation placeholders for documents, formats context for the LLM, and post-processes responses to replace placeholders with numbered references linked to source documents.

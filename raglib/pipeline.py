@@ -143,7 +143,9 @@ class RAGPipeline:
         main_agent_messages = [
             {
                 "role": "system",
-                "content": self.prompt_main_agent + "\n\nContext:" + documents_joined,
+                "content": self.prompt_main_agent
+                + "\n\n## Source Material:\n"
+                + documents_joined,
             }
         ]
         model_answer = send_llm_request(
