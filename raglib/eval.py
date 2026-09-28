@@ -2,7 +2,7 @@
 
 Provides:
 - Retrieval metrics: precision@k, recall@k, f1_score
-- LLM-judged metrics: groundedness, relevance, coherence, fluency
+- LLM-judged metrics: groundedness, relevance, coherence, fluency, similarity
 
 LLM judges load prompts from raglib/prompts/evaluation/ and return
 structured scores (1-5) with reasoning.
@@ -11,11 +11,13 @@ structured scores (1-5) with reasoning.
 import json
 
 from raglib.azure_ai import send_llm_request
+from raglib.config import app_config
 from raglib.prompts.prompts import (
     EVAL_COHERENCE_PROMPT,
     EVAL_FLUENCY_PROMPT,
     EVAL_GROUNDEDNESS_PROMPT,
     EVAL_RELEVANCE_PROMPT,
+    EVAL_SIMILARITY_PROMPT,
 )
 
 
@@ -119,6 +121,18 @@ class LLMJudge:
 {response}"""
         return self._evaluate(EVAL_FLUENCY_PROMPT, user_content)
 
+    def similarity(self, query: str, response: str, ground_truth: str) -> dict:
+        """Score how semantically similar the response is to the ground truth."""
+        user_content = f"""## Query
+{query}
+
+## Ground Truth
+{ground_truth}
+
+## Response
+{response}"""
+        return self._evaluate(EVAL_SIMILARITY_PROMPT, user_content)
+
     def _evaluate(self, system_prompt: str, user_content: str) -> dict:
         """Send a judge request and return parsed score and reasoning."""
         messages = [
@@ -126,7 +140,11 @@ class LLMJudge:
             {"role": "user", "content": user_content},
         ]
         try:
-            response = send_llm_request(self.deployment, messages)
+            response = send_llm_request(
+                self.deployment,
+                messages,
+                app_config.judge.as_model_parameters(),
+            )
             response_text = self._parse_response(response)
             result = json.loads(response_text)
             return {

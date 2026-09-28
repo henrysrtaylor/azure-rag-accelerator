@@ -109,11 +109,12 @@ class GuardrailEvaluator:
     def _is_content_moderation_detected(self, text: str) -> bool:
         """Check whether text crosses configured moderation thresholds."""
         results = self.moderate_content(text)
+        thresholds = self.config.guardrails
         return (
-            results["hate"] >= self.config.hate_guardrail_threshold
-            or results["self_harm"] >= self.config.self_harm_guardrail_threshold
-            or results["sexual"] >= self.config.sexual_guardrail_threshold
-            or results["violence"] >= self.config.violence_guardrail_threshold
+            results["hate"] >= thresholds.hate
+            or results["self_harm"] >= thresholds.self_harm
+            or results["sexual"] >= thresholds.sexual
+            or results["violence"] >= thresholds.violence
         )
 
     def _is_off_topic(self, user_query: str) -> bool:
@@ -126,6 +127,7 @@ class GuardrailEvaluator:
             send_llm_request(
                 self.config.large_deployed_model,
                 messages,
+                self.config.topic_guardrail.as_model_parameters(),
             )
             .strip()
             .lower()

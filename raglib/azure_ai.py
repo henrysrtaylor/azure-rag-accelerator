@@ -36,6 +36,7 @@ def retrieve_documents(
         k_nearest_neighbors=app_config.k_nearest_neighbors,
         fields="content_embedding",
         exhaustive=False,
+        weight=app_config.vector_weight,
     )
 
     # Execute combined search - vector, keyword, and semantic
@@ -43,44 +44,60 @@ def retrieve_documents(
         results = search_client.search(
             search_text=text_query,
             search_fields=["content_text"],
+            search_mode=app_config.search_mode,
             vector_queries=[vector_query],
             query_type="semantic",
             semantic_configuration_name=semantic_config_name,
             select=["content_text", "document_title", "document_date"],
             filter=security_filter,
-            top=app_config.number_documents_retrieve,
+            top=app_config.number_chunks_retrieve,
         )
         results = list(results)
     except Exception:
         logger.exception("Azure AI Search retrieval failed")
         return {}
+
+    # Preserve rank order and cap the number of distinct documents returned.
+    ordered_titles: list[str] = []
+    for doc in results:
+        title = doc["document_title"]
+        if title not in ordered_titles:
+            ordered_titles.append(title)
+    ordered_titles = ordered_titles[: app_config.number_documents_retrieve]
+
     retrieved_documents = {}
-    for title in list(
-        set([doc["document_title"] for doc in results])
-    ):  # combine all chunks for the same title.
+    for title in ordered_titles:
         documents = [
             doc["content_text"] for doc in results if doc["document_title"] == title
-        ]  # combine all chunks for the same title and page number
+        ]  # combine all chunks that share a document title
         retrieved_documents[title] = {
-            # Combine chunks that share a document title.
             "documents": "\n".join(documents),
         }
 
     return retrieved_documents
 
 
-def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> str:
+def send_llm_request(
+    deployment_name: str,
+    messages: list[dict[str, str]],
+    model_parameters: dict | None = None,
+) -> str:
     """
     Send a chat completion request via the Microsoft Foundry OpenAI v1 API.
 
     Args:
         deployment_name: The model deployment name (e.g., 'gpt-5').
         messages: List of message dicts with 'role' and 'content' keys.
+        model_parameters: Generation parameters (reasoning effort and token
+            limit) built from a ``TaskModelConfig``. Defaults to the main-agent
+            task configuration when omitted.
 
     Returns:
         The model's response text, stripped of leading/trailing whitespace.
     """
     chat_client = get_chat_client()
+    if model_parameters is None:
+        model_parameters = app_config.main_agent.as_model_parameters()
     normalized_messages = [
         {
             "role": message.get("role", "user")
@@ -93,7 +110,7 @@ def send_llm_request(deployment_name: str, messages: list[dict[str, str]]) -> st
     response = chat_client.chat.completions.create(
         model=deployment_name,
         messages=normalized_messages,
-        reasoning_effort=app_config.reasoning_effort,
+        **model_parameters,
     )
     content = response.choices[0].message.content
     return content.strip() if content else ""

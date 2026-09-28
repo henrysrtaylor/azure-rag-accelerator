@@ -261,11 +261,12 @@ indexer_client.create_or_update_skillset(skillset)
 logger.info("%s created or updated", skillset.name)
 
 indexer_parameters = {
+    "batchSize": app_config.indexer_batch_size,
     "configuration": {
         "allowSkillsetToReadFileData": True,  # to enable image handleing in skillset
         # Enable private skillset execution with:
         # "executionEnvironment": "private"
-    }
+    },
 }
 schedule_indexer = IndexingSchedule(interval="P1D")
 indexer = SearchIndexer(
