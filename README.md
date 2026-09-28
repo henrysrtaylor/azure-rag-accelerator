@@ -75,20 +75,29 @@ Tunable values in `raglib/config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `number_documents_retrieve` | `5` | Number of documents to retrieve |
-| `k_nearest_neighbors` | `3` | k for vector search |
-| `suggested_questions` | `3` | Number of follow-up suggestions |
+| `number_chunks_retrieve` | `5` | Chunks (search results) to retrieve |
+| `number_documents_retrieve` | `5` | Distinct documents to keep after grouping chunks |
+| `k_nearest_neighbors` | `5` | k for vector search |
+| `vector_weight` | `1.0` | Relative weight of vector results in hybrid fusion |
+| `search_mode` | `any` | Keyword match mode (`any` or `all`) |
+| `number_suggested_questions` | `3` | Number of follow-up suggestions |
 | `chunk_size` | `1000` | Document chunk size (indexing) |
 | `chunk_overlap` | `100` | Chunk overlap (indexing) |
+| `indexer_batch_size` | `10` | Documents per indexer batch |
 
-Content safety thresholds (0-7, higher = more permissive):
+Per-task LLM generation parameters live in `TaskModelConfig` entries
+(`main_agent`, `query_refinement`, `suggested_questions`, `topic_guardrail`,
+`judge`), each exposing `reasoning_effort` and `max_tokens`.
+
+Content safety thresholds (0-7, higher = more permissive) are grouped under
+`guardrails` (`GuardrailThresholds`):
 
 | Parameter | Default |
 |-----------|---------|
-| `hate_guardrail_threshold` | `4` |
-| `self_harm_guardrail_threshold` | `4` |
-| `sexual_guardrail_threshold` | `4` |
-| `violence_guardrail_threshold` | `4` |
+| `guardrails.hate` | `4` |
+| `guardrails.self_harm` | `4` |
+| `guardrails.sexual` | `4` |
+| `guardrails.violence` | `4` |
 
 ## 🚀 Getting Started
 

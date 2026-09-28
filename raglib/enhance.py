@@ -31,7 +31,9 @@ class LanguageEnhancer:
             }
         ]
         return send_llm_request(
-            self.config.large_deployed_model, refinement_messages
+            self.config.large_deployed_model,
+            refinement_messages,
+            self.config.query_refinement.as_model_parameters(),
         ).strip()
 
     def generate_suggested_questions(
@@ -57,7 +59,9 @@ class LanguageEnhancer:
             }
         ]
         answer = send_llm_request(
-            self.config.large_deployed_model, suggestion_messages
+            self.config.large_deployed_model,
+            suggestion_messages,
+            self.config.suggested_questions.as_model_parameters(),
         ).strip()
 
         pattern = r"\[([^\[\]]*?\?)\]"

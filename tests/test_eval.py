@@ -27,7 +27,7 @@ def test_judge_parses_fenced_json(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         eval_module,
         "send_llm_request",
-        lambda deployment, messages: (
+        lambda *args, **kwargs: (
             '```json\n{"score": 4, "reasoning": "Mostly grounded"}\n```'
         ),
     )
@@ -39,7 +39,7 @@ def test_judge_parses_plain_json(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         eval_module,
         "send_llm_request",
-        lambda deployment, messages: '{"score": 5, "reasoning": "Perfect"}',
+        lambda *args, **kwargs: '{"score": 5, "reasoning": "Perfect"}',
     )
     judge = LLMJudge("test-model")
     result = judge.relevance("q", "resp")
@@ -51,7 +51,7 @@ def test_judge_handles_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         eval_module,
         "send_llm_request",
-        lambda deployment, messages: "not json at all",
+        lambda *args, **kwargs: "not json at all",
     )
     judge = LLMJudge("test-model")
     result = judge.fluency("resp")
