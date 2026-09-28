@@ -143,12 +143,15 @@ class RAGPipeline:
         main_agent_messages = [
             {
                 "role": "system",
-                "content": self.prompt_main_agent + "\n\nContext:" + documents_joined,
+                "content": self.prompt_main_agent
+                + "\n\n## Source Material:\n"
+                + documents_joined,
             }
         ]
         model_answer = send_llm_request(
             app_config.large_deployed_model,
             main_agent_messages + chat_history,
+            app_config.main_agent.as_model_parameters(),
         )
 
         output_result = self.guardrail_evaluator.check_output(model_answer)

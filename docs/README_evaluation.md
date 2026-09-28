@@ -12,6 +12,7 @@ This accelerator uses **custom LLM-as-judge evaluators** rather than the Azure A
 | **Relevance** | Does the response address the user's query? |
 | **Coherence** | Is the response logically structured and easy to follow? |
 | **Fluency** | Is the response grammatically correct and natural? |
+| **Similarity** | Does the response match the ground-truth answer in meaning? |
 
 ### Retrieval Metrics (0-1 scale)
 
@@ -37,14 +38,15 @@ raglib/
     ├── prompt_eval_groundedness.md
     ├── prompt_eval_relevance.md
     ├── prompt_eval_coherence.md
-    └── prompt_eval_fluency.md
+    ├── prompt_eval_fluency.md
+    └── prompt_eval_similarity.md
 ```
 
 ## How It Works
 
 1. **Load golden dataset** - queries with expected answers and relevant documents
 2. **Run RAG pipeline** - call `RAGPipeline.run()` with each query's chat history and security filter, with suggested questions disabled, then read the response and retrieved document context needed for scoring
-3. **LLM judges** - call judge model to score groundedness, relevance, coherence, fluency
+3. **LLM judges** - call judge model to score groundedness, relevance, coherence, fluency, similarity
 4. **Retrieval metrics** - calculate precision/recall from retrieved vs. expected docs
 5. **Aggregate & report** - average scores, compare to thresholds, output results
 
@@ -68,6 +70,7 @@ Thresholds are defined by the frozen `EvalConfig` dataclass in
 class EvalConfig:
     groundedness_threshold: float = 0.6
     relevance_threshold: float = 0.6
+    similarity_threshold: float = 0.6
     f1_score_threshold: float = 0.5
     retrieval_recall_at_5_threshold: float = 0.7
 

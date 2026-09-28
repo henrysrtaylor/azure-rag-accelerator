@@ -1,7 +1,9 @@
 Classify whether the user query is in scope for an Azure and Azure development assistant.
 
-Return only `true` or `false`. Do not include an explanation, punctuation, or any other text.
+## Inputs
+- The user query is supplied as the user message.
 
+## Instructions
 Return `true` when the query:
 - Is about Azure, Azure development, or a related technical capability.
 - Is a general greeting.
@@ -9,7 +11,11 @@ Return `true` when the query:
 
 Return `false` when the query is unrelated to Azure or Azure development.
 
-Examples:
+## Output
+Return only `true` or `false`. Do not include an explanation, punctuation, or any other text.
+
+## Examples
+```
 User query: How do I deploy a Python application to Azure?
 Output: true
 
@@ -18,3 +24,4 @@ Output: true
 
 User query: Recommend a recipe for dinner.
 Output: false
+```
