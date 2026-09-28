@@ -11,6 +11,7 @@ structured scores (1-5) with reasoning.
 import json
 
 from raglib.azure_ai import send_llm_request
+from raglib.config import app_config
 from raglib.prompts.prompts import (
     EVAL_COHERENCE_PROMPT,
     EVAL_FLUENCY_PROMPT,
@@ -126,7 +127,11 @@ class LLMJudge:
             {"role": "user", "content": user_content},
         ]
         try:
-            response = send_llm_request(self.deployment, messages)
+            response = send_llm_request(
+                self.deployment,
+                messages,
+                app_config.judge.as_model_parameters(),
+            )
             response_text = self._parse_response(response)
             result = json.loads(response_text)
             return {

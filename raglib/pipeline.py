@@ -149,6 +149,7 @@ class RAGPipeline:
         model_answer = send_llm_request(
             app_config.large_deployed_model,
             main_agent_messages + chat_history,
+            app_config.main_agent.as_model_parameters(),
         )
 
         output_result = self.guardrail_evaluator.check_output(model_answer)

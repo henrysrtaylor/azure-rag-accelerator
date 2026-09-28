@@ -32,7 +32,7 @@ def test_run_builds_complete_response(
     monkeypatch.setattr(
         pipeline,
         "send_llm_request",
-        lambda deployment, messages: f"Answer [{PLACEHOLDER_CITATION}1]",
+        lambda *args, **kwargs: f"Answer [{PLACEHOLDER_CITATION}1]",
     )
 
     rag_pipeline = pipeline.RAGPipeline()
@@ -86,7 +86,7 @@ def test_model_guardrail_removes_context_references_and_suggestions(
     monkeypatch.setattr(
         pipeline,
         "send_llm_request",
-        lambda deployment, messages: "blocked",
+        lambda *args, **kwargs: "blocked",
     )
 
     rag_pipeline = pipeline.RAGPipeline()
@@ -136,7 +136,7 @@ def test_run_skips_suggestions_when_disabled(
     monkeypatch.setattr(
         pipeline,
         "send_llm_request",
-        lambda deployment, messages: f"Answer [{PLACEHOLDER_CITATION}1]",
+        lambda *args, **kwargs: f"Answer [{PLACEHOLDER_CITATION}1]",
     )
 
     rag_pipeline = pipeline.RAGPipeline(enable_suggested_questions=False)
