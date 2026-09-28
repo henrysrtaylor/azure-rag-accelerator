@@ -97,6 +97,7 @@ class EvalConfig:
     relevance_threshold: float = 0.6
     fluency_threshold: float = 0.6
     coherence_threshold: float = 0.6
+    similarity_threshold: float = 0.6
     f1_score_threshold: float = 0.5
     retrieval_precision_at_1_threshold: float = 0.5
     retrieval_precision_at_5_threshold: float = 0.5
@@ -111,6 +112,7 @@ class EvalConfig:
             "relevance": self.relevance_threshold,
             "fluency": self.fluency_threshold,
             "coherence": self.coherence_threshold,
+            "similarity": self.similarity_threshold,
             "f1_score": self.f1_score_threshold,
             "retrieval_precision_at_1": self.retrieval_precision_at_1_threshold,
             "retrieval_precision_at_5": self.retrieval_precision_at_5_threshold,

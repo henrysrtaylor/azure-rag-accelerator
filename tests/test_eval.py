@@ -57,3 +57,22 @@ def test_judge_handles_malformed_json(monkeypatch: pytest.MonkeyPatch) -> None:
     result = judge.fluency("resp")
     assert result["score"] is None
     assert "JSON parse error" in result["reasoning"]
+
+
+def test_judge_similarity_scores_against_ground_truth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_send(deployment, messages, model_parameters=None):
+        captured["messages"] = messages
+        return '{"score": 4, "reasoning": "Mostly equivalent"}'
+
+    monkeypatch.setattr(eval_module, "send_llm_request", fake_send)
+    judge = LLMJudge("test-model")
+    result = judge.similarity("q", "the response", "the ground truth")
+
+    assert result["score"] == 4
+    user_content = captured["messages"][1]["content"]
+    assert "the ground truth" in user_content
+    assert "the response" in user_content
