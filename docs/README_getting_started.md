@@ -35,8 +35,16 @@ cd azure-rag-accelerator
 From the project root, install the runtime and development dependencies declared in `pyproject.toml`. This also creates `.venv` automatically:
 
 ```bash
-uv sync
+uv sync --locked
 ```
+
+After changing dependencies in `pyproject.toml`, regenerate and commit `uv.lock`:
+
+```bash
+uv lock --no-config --default-index https://pypi.org/simple
+```
+
+This uses public PyPI rather than a machine-specific package index, keeping the lockfile usable in GitHub Actions.
 
 ## 4. Activate the Virtual Environment (Optional)
 
