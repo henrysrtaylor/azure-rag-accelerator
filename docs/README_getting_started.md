@@ -46,6 +46,8 @@ uv lock --no-config --default-index https://pypi.org/simple
 
 This uses public PyPI rather than a machine-specific package index, keeping the lockfile usable in GitHub Actions.
 
+CI uses Python 3.12 to avoid native dependency source builds (such as PyArrow) on newer Python releases that lack compatible wheels. This CI-only pin does not change local Python defaults or the project's Python 3.10-or-later requirement.
+
 ## 4. Activate the Virtual Environment (Optional)
 
 Activation is not required when commands are prefixed with `uv run`.
