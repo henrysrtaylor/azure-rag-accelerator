@@ -33,4 +33,3 @@ def test_task_model_config_builds_model_parameters() -> None:
         "reasoning_effort": app_config.main_agent.reasoning_effort,
         "max_completion_tokens": app_config.main_agent.max_tokens,
     }
-

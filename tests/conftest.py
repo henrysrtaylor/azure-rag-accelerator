@@ -14,6 +14,7 @@ TEST_ENV = {
     "AZURE_SEARCH_SERVICE_ENDPOINT": "https://search.test",
 }
 
+
 # Set env vars at module level so imports that validate at load time pass.
 for _name, _value in TEST_ENV.items():
     os.environ.setdefault(_name, _value)
